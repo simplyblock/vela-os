@@ -61,7 +61,7 @@ case "${1}" in
 
   saveconfig )
     if [ ! -d ${BR2_OUTPUT_PATH}/build ]; then
-      echo "Working directory not yet setup, please run 'aradiko setup'"
+      echo "Working directory not yet setup, please run 'builder setup'"
       exit -1
     fi
 

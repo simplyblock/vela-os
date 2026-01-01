@@ -136,21 +136,20 @@ volDownloadCache="${containerName}-dlcache"
 volOutput="${containerName}-output"
 
 internalVolumes=($volDownloadCache $volOutput $volDevkit)
-
-if [ "EXT_DL_CACHE" != "" ]; then
+if [ ! "${EXT_DL_CACHE}" = "" ]; then
   volDownloadCache="${EXT_DL_CACHE}"
 fi
 
 # Docker Volume Mounts
 dockerVolumes=" --volume=${volDevkit}:${PATH_DEVKIT} \
-		--volume=${BASEDIR}/scripts:${PATH_SCRIPTS} \
-		--volume=${BASEDIR}/prototype:${PATH_PROTOTYPE} \
-		--volume=${BASEDIR}/buildroot:${PATH_BUILDROOT} \
-                --volume=${volDownloadCache}:${PATH_DL_CACHE} \
-		--volume=${volOutput}:${PATH_OUTPUT} \
-                --volume=${BASEDIR}/images:${PATH_IMAGES} \
-                --volume=${HOME}/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub \
-                --volume=${HOME}/.vault-token:/root/.vault-token \
+    --volume=${BASEDIR}/scripts:${PATH_SCRIPTS} \
+    --volume=${BASEDIR}/prototype:${PATH_PROTOTYPE} \
+    --volume=${BASEDIR}/buildroot:${PATH_BUILDROOT} \
+    --volume=${volDownloadCache}:${PATH_DL_CACHE} \
+    --volume=${volOutput}:${PATH_OUTPUT} \
+    --volume=${BASEDIR}/images:${PATH_IMAGES} \
+    --volume=${HOME}/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub \
+    --volume=${HOME}/.vault-token:/root/.vault-token \
 "
 
 # Adding CCACHE features
@@ -161,9 +160,9 @@ if [ ${AUTOBUILD_MODE} ]; then
 fi
 
 export BR2_EXTERNAL="${PATH_PROTOTYPE}"
-export BR2_EXTERNAL_COMMON_ROOTFS="${BR2_EXTERNAL}/board/vela/common/rootfs_overlay"
+export BR2_EXTERNAL_COMMON_ROOTFS="${BR2_EXTERNAL}/boards/common/rootfs_overlay"
 export BR2_EXTERNAL_CONFIGS="${BR2_EXTERNAL}/configs"
-export BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL}/board/vela/common/"
+export BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL}/boards/common/"
 
 export BUILDROOT_PATH="${PATH_BUILDROOT}"
 export BR2_OUTPUT_PATH="${PATH_OUTPUT}"
