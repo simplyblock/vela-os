@@ -140,6 +140,11 @@ case "${1}" in
 
   makesdk )
     ${MAKE} sdk
+    mv ${BR2_OUTPUT_PATH}/images/x86_64-buildroot-linux-gnu_sdk-buildroot.tar.gz ${BR2_OUTPUT_PATH}/images/x86_64-buildroot-linux-gnu_sdk-buildroot-host-${OS,,}-${ARCH}.tar.gz
+  ;;
+
+  restoresdk )
+    echo "Restoring an SDK is not yet supported"
   ;;
 
   env )
