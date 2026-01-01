@@ -1,0 +1,105 @@
+#!/bin/bash
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo "Script cannot run on its own, please use the builder script to build the VelaOS"
+  exit 1
+fi
+
+function dockerVolumeExists() {
+    ${DOCKER} volume inspect $1 1> /dev/null 2>&1
+    [ "$?" == "1" ] && echo 1 || echo 0
+}
+
+function ensureVolume() {
+    [ "$(dockerVolumeExists $1)" == "1" ] && echo -n "Creating volume " && ${DOCKER} volume create --name $1
+}
+
+function removeVolume() {
+    [ "$(dockerVolumeExists $1)" == "0" ] && echo -n "Destroying volume " && ${DOCKER} volume rm -f $1
+}
+
+function cleanVolumes() {
+    for vol in ${internalVolumes[@]}; do
+        removeVolume $vol
+    done
+}
+
+function makeVolumes() {
+    for vol in ${internalVolumes[@]}; do
+        ensureVolume $vol
+    done
+}
+
+function rebuildVolumes() {
+    cleanVolumes
+    makeVolumes
+}
+
+args=( "$@" )
+case "${args[0]}" in
+    setup )
+        ${DOCKER} inspect ${containerName} 1> /dev/null 2>&1
+        if [ "$?" == "0" ]; then
+            if [ "${args[1]}" == "-i" ]; then
+                echo "Docker container already exists. Skipping build."
+                exit 0
+            fi
+            echo "A Docker container already exists. If you want to recreate it, please run 'builder docker purge'  first"
+            exit 1
+        fi
+        cat ${BASEDIR}/scripts/Dockerfile | ${DOCKER} build -t ${containerName} - || exit 1
+        makeVolumes
+    ;;
+
+    purge )
+        ${DOCKER} inspect ${containerName} > /dev/null 2>&1
+        if [ "$?" == "0" ]; then
+            ${DOCKER} container rm -f ${containerName}
+            ${DOCKER} image rm -f ${containerName}
+            cleanVolumes
+        fi
+    ;;
+
+    clean )
+        ${DOCKER} inspect ${containerName} > /dev/null 2>&1
+        if [ "$?" == "0" ]; then
+            rebuildVolumes
+        fi
+    ;;
+
+    rm )
+        ${DOCKER} inspect ${containerName} > /dev/null 2>&1
+        if [ "$?" == "0" ]; then
+            cleanVolumes
+        fi
+    ;;
+
+    shell )
+        ${DOCKER} run --rm --name ${containerName}-task \
+            -it -w /opt/builder ${dockerVolumes} \
+            ${containerName} \
+            /bin/bash
+    ;;
+
+    store )
+        ${DOCKER} container commit ${containerName}
+    ;;
+
+    reclaim )
+        ${DOCKER} image prune --all --force
+        ${DOCKER} container prune --force
+    ;;
+
+    rebuild )
+        image=$(${DOCKER} image list | grep vela-os-builder | ${AWK} '{print $3}')
+        if [ "${image}" != "" ]; then
+            ${DOCKER} image rm ${image}
+            ${DOCKER} build -f ${BASEDIR}/scripts/Dockerfile -t ${containerName} ${BASEDIR} || exit 1
+        fi
+    ;;
+
+    * )
+        echo "Unknown command"
+        exit 1
+    ;;
+esac

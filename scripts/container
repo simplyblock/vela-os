@@ -1,0 +1,153 @@
+#!/bin/bash
+
+source ./scripts/setup-env
+
+git config --global credential.helper store
+echo "https://${GITHUB_TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials
+
+function setupBuildroot() {
+  board=${1:-`echo vela-qemu-x64`}
+  case "${board}" in
+    vela-qemu-x64 )
+      defconfig="vela_qemu_x64_defconfig"
+    ;;
+
+    * )
+      defconfig="${board}_defconfig"
+    ;;
+  esac
+
+  if [ ! -f ${PATH_PROTOTYPE}/configs/${defconfig} ] && [ ! -f ${PATH_BUILDROOT}/configs/${defconfig} ]; then
+    echo "Unknown board configuration set '${defconfig}'"
+    exit 1
+  fi
+
+  echo "Setting up buildroot to use configuration '${defconfig}'"
+  make O=${BR2_OUTPUT_PATH} ${defconfig}
+}
+
+cd ${PATH_BUILDROOT}
+MAKE="make O= O=${BR2_OUTPUT_PATH}"
+
+echo "Loading buildroot..."
+
+args=( "$@" )
+case "${1}" in
+  setup )
+    setupBuildroot "${args[@]:1}"
+  ;;
+
+  config )
+    export TERM=xterm
+    tool=${2:-`echo buildroot`}
+    case "${tool}" in
+      linux )
+        ${MAKE} linux-nconfig
+      ;;
+
+      busybox )
+        ${MAKE} O=${BR2_OUTPUT_PATH} busybox-menuconfig
+      ;;
+
+      barebox )
+        ${MAKE} O=${BR2_OUTPUT_PATH} barebox-menuconfig
+      ;;
+
+      * )
+        ${MAKE} O=${BR2_OUTPUT_PATH} nconfig
+      ;;
+    esac
+  ;;
+
+  saveconfig )
+    if [ ! -d ${BR2_OUTPUT_PATH}/build ]; then
+      echo "Working directory not yet setup, please run 'aradiko setup'"
+      exit -1
+    fi
+
+    echo "Saving buildroot configuration..."
+    ${MAKE} savedefconfig
+
+    if ls ${BR2_OUTPUT_PATH}/build/busybox-* 1> /dev/null 2>&1; then
+      echo "Saving Busybox configuration..."
+      ${MAKE} busybox-update-config
+    fi
+
+    if ls ${BR2_OUTPUT_PATH}/build/barebox-* 1> /dev/null 2>&1; then
+      echo "Saving Barebox configuration..."
+      ${MAKE} barebox-update-defconfig
+    fi
+
+    if ls ${BR2_OUTPUT_PATH}/build/linux-* 1> /dev/null 2>&1; then
+      echo "Saving Linux configuration..."
+      ${MAKE} linux-update-defconfig
+    fi
+  ;;
+
+  clean )
+    case "${2}" in
+      target )
+        rm -rf ${BR2_OUTPUT_PATH}/target
+        find ${BR2_OUTPUT_PATH}/ -name ".stamp_target_installed" | xargs rm -rf
+      ;;
+
+      * )
+        if [ "${2}" != "" ] && [ "$(make ${2}-show-depends > /dev/null 2>&1 && echo $?)" == "0" ]; then
+          ${MAKE} ${2}-dirclean
+        else
+          ${MAKE} clean
+        fi
+      ;;
+    esac
+  ;;
+
+  build )
+    export BR2_JLEVEL=$(expr $(cat /proc/cpuinfo | grep processor | wc -l) + 1)
+    echo "Running multithreaded build with ${BR2_JLEVEL} make instances"
+    if [ "${2}" == "dts" ]; then
+       ${MAKE} linux-rebuild
+    elif [ ! "${2}" == "" ]; then
+      ${MAKE} ${2}-build
+    else
+      ${MAKE} -j4 #&& ${MAKE} legal-info
+    fi
+  ;;
+
+  rebuild )
+    ${MAKE} ${2}-rebuild
+  ;;
+
+  download )
+    ${MAKE} source
+  ;;
+
+  dependencies )
+    BR2_GRAPH_OUT=svg ${MAKE} graph-depends
+    cp ${BR2_OUTPUT_PATH}/graphs/graph-depends.* ${BR2_OUTPUT_PATH}/images/
+  ;;
+
+  buildtimegraph )
+    ${MAKE} graph-build
+    cp ${BR2_OUTPUT_PATH}/graphs/build.* ${BR2_OUTPUT_PATH}/images/
+  ;;
+
+  buildsize )#
+    ${MAKE} graph-size
+    cp ${BR2_OUTPUT_PATH}/graphs/graph-size.pdf ${BR2_OUTPUT_PATH}/images/
+    cp ${BR2_OUTPUT_PATH}/graphs/package-size-stats.csv ${BR2_OUTPUT_PATH}/images/
+    cp ${BR2_OUTPUT_PATH}/graphs/file-size-stats.csv ${BR2_OUTPUT_PATH}/images/
+  ;;
+
+  makesdk )
+    ${MAKE} sdk
+  ;;
+
+  env )
+    ${MAKE} -s printvars
+  ;;
+
+  * )
+    echo "Unknown command"
+    exit 1
+  ;;
+esac
