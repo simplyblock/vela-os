@@ -9,6 +9,7 @@ RUN apt update && \
   apt -y install \
   wget \
   file \
+  sed \
   build-essential \
   swig \
   bc \
@@ -29,6 +30,8 @@ RUN apt update && \
   nano \
   ccache \
   cmake \
+  libtool \
+  m4 \
   python3-matplotlib \
   python3-numpy \
   python3-argparse-addons \
