@@ -1,12 +1,12 @@
 #!/bin/bash
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  echo "Setup script cannot run on its own, please use the builder script to build the VelaOS"
+(return 0 2>/dev/null) || {
+  echo "This script must be sourced"
   exit 1
-fi
+}
 
 function insideContainer() {
-  [ -f /proc/self/cgroup ] && grep 'docker\|lxc' /proc/self/cgroup
+  [ -f /.dockerenv ]
   echo $?
 }
 
@@ -84,10 +84,11 @@ function executable() {
   exit 0
 }
 
-
-if [ "${JOB_NAME}" != "" ]; then
-  echo "Detected Jenkins builder, running non-interactive"
-  AUTOBUILD_MODE=true
+if [ "${AUTOBUILD_MODE}" == "" ]; then
+  if [ "${JOB_NAME}" != "" ]; then
+    echo "Detected Jenkins builder, running non-interactive"
+    AUTOBUILD_MODE=true
+  fi
 fi
 
 export TERM=screen-256color
@@ -145,6 +146,7 @@ volDownloadCache="${containerName}-dlcache"
 volOutput="${containerName}-output"
 
 internalVolumes=($volDownloadCache $volOutput $volDevkit)
+
 if [ ! "${EXT_DL_CACHE}" = "" ]; then
   volDownloadCache="${EXT_DL_CACHE}"
 fi
@@ -158,22 +160,19 @@ dockerVolumes=" --volume=${volDevkit}:${PATH_DEVKIT} \
     --volume=${volOutput}:${PATH_OUTPUT} \
     --volume=${BASEDIR}/images:${PATH_IMAGES} \
     --volume=${HOME}/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub \
-    --volume=${HOME}/.vault-token:/root/.vault-token \
 "
 
 # Adding CCACHE features
-if [ ${AUTOBUILD_MODE} ]; then
+#if [ ${AUTOBUILD_MODE} ]; then
     dockerVolumes+="--volume=${HOME}/ccache:${PATH_CCACHE}"
-    export BR2_CCACHE="y"
+    export BR2_USE_CCACHE="1"
     export BR2_CCACHE_DIR="${PATH_CCACHE}"
-fi
+#fi
 
 export BR2_EXTERNAL="${PATH_PROTOTYPE}"
-export BR2_EXTERNAL_COMMON_ROOTFS="${BR2_EXTERNAL}/boards/common/rootfs_overlay"
 export BR2_EXTERNAL_CONFIGS="${BR2_EXTERNAL}/configs"
 export BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL}/boards/common/"
 
 export BUILDROOT_PATH="${PATH_BUILDROOT}"
 export BR2_OUTPUT_PATH="${PATH_OUTPUT}"
 export BR2_DLCACHE_PATH="${PATH_DL_CACHE}"
-

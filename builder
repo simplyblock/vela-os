@@ -22,7 +22,7 @@ echo "Devkit Base Path: ${BASEDIR}"
 
 args=("$@")
 case "${args[0]}" in
-  setup|config|saveconfig|clean|build|rebuild|download|dependencies|buildtimegraph|buildsize|env|makesdk|restoresdk )
+  setup|config|saveconfig|clean|build|rebuild|download|dependencies|buildtimegraph|buildsize|env|makesdk )
     source ${BASEDIR}/scripts/helper "${args[@]}"
   ;;
 
@@ -33,6 +33,12 @@ case "${args[0]}" in
   initialize )
     git submodule update --init --recursive --remote --checkout
     git submodule update --recursive
+    cd buildroot
+    for patch in ../patches/*; do
+      echo "Applying patch ${patch} to buildroot..."
+      patch -s -p1 < ${patch}
+    done
+    cd ..
   ;;
 
   * )

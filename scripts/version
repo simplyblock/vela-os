@@ -48,11 +48,11 @@ do
   fi
 done
 
-if [[ "${NEXT_MAJOR,,}" == "yes" ]]; then
+if [ ${NEXT_MAJOR} ]; then
   highestMajor=$((${highestMajor} + 1))
   highestMinor=0
   highestBuild=0
-elif [[ "${NEXT_MINOR,,}" == "yes" ]]; then
+elif [ ${NEXT_MINOR} ]; then
   highestMinor=$((${highestMinor} + 1))
   highestBuild=0
 else

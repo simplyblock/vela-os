@@ -29,18 +29,19 @@ case "${args[0]}" in
           exit 1
         fi
 
-        ${DOCKER} inspect ${containerName} > /dev/null 2>&1
+        ${DOCKER} image list 2>&1 | grep ${containerName} > /dev/null 2>&1
         if [ "$?" == "1" ]; then
             echo "No docker environment found, please run './builder docker setup' first"
             exit 1
         fi
 
-	source scripts/version
+        source scripts/version
 
         if [ ! -d "${BASEDIR}/images/" ]; then
             mkdir ${BASEDIR}/images
         fi
 
+        echo
         echo "Loading container environment..."
         echo "Mounting volumes:"
         echo "  - ${volDevkit} => ${PATH_DEVKIT}"
