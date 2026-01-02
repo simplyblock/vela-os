@@ -30,6 +30,10 @@ case "${args[0]}" in
     source ${BASEDIR}/scripts/docker "${args[@]:1}"
   ;;
 
+  qemu )
+    source ${BASEDIR}/scripts/qemu "${args[@]:1}"
+  ;;
+
   initialize )
     git submodule update --init --recursive --remote --checkout
     git submodule update --recursive

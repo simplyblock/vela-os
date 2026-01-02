@@ -1,0 +1,33 @@
+#!/bin/bash
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo "Script cannot run on its own, please use the builder script to build the VelaOS"
+  exit 1
+fi
+
+# Check if we can enable kvm
+# Check host networking tap/vmnet-bridged
+if [ "${OS}" == "OSX" ]; then
+  network="vmnet-bridged,id=default,ifname=en0"
+else
+  network="tap,id=default,ifname=tap-def,queues=4,script=no,downscript=no,vhost=on"
+fi
+
+qemu-system-x86_64 -machine q35 -nographic -no-reboot -nodefaults -only-migratable \
+-audiodev "none,id=noaudio" -serial pty -msg "timestamp=on" \
+-monitor unix:/tmp/qemu-monitor-socket,server,nowait \
+-qmp "tcp:0.0.0.0:20183,server,wait=off" \
+-qmp "tcp:0.0.0.0:20184,server,wait=off" \
+-qmp "unix:/tmp/qmp-sigterm.sock,server,wait=off" \
+-device "virtio-serial" \
+-chardev "socket,path=/tmp/log.sock,server=on,wait=off,id=log" \
+-device "virtserialport,chardev=log,name=tech.neon.log.0" \
+-drive "id=rootdisk,file=./images/disk.qcow2,if=virtio,media=disk,index=0,cache.writeback=on,cache.direct=on,cache.no-flush=on" \
+-chardev "stdio,id=virtio-console" \
+-device "virtconsole,chardev=virtio-console" -cpu max \
+-smp "cpus=1,maxcpus=1,sockets=1,cores=1,threads=1" -m "size=1073741824b,slots=255,maxmem=274877906944b" \
+-netdev "${network}" \
+-device "virtio-net-pci,mq=on,vectors=10,netdev=default,mac=26:a6:40:94:6f:40" \
+-kernel "./images/vmlinuz" \
+-append "panic=-1 init=/neonvm/bin/init loglevel=6 root=/dev/vda rw memhp_default_state=online memory_hotplug.online_policy=auto-movable memory_hotplug.auto_movable_ratio=401 hostname=vm-example-92twv console=hvc0" \
+#-incoming "file:./vmstate-start.bin"
