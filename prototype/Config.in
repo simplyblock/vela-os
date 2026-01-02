@@ -1,3 +1,6 @@
 source "$BR2_EXTERNAL_VELAOS_PATH/package/postgresql-18/Config.in"
 source "$BR2_EXTERNAL_VELAOS_PATH/package/pgvector/Config.in"
 source "$BR2_EXTERNAL_VELAOS_PATH/package/pgexporter/Config.in"
+source "$BR2_EXTERNAL_VELAOS_PATH/package/su-exec/Config.in"
+source "$BR2_EXTERNAL_VELAOS_PATH/package/vm-monitor/Config.in"
+source "$BR2_EXTERNAL_VELAOS_PATH/package/neonvmd/Config.in"
