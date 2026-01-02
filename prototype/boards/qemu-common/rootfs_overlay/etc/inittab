@@ -1,0 +1,28 @@
+::sysinit:/neonvm/bin/vminit
+::once:/neonvm/bin/touch /neonvm/vmstart.allowed
+# we might be using hvc0 console, so we need to print the kernel version in user space, after virtio console is initialized
+::once:cat /proc/version
+::respawn:/neonvm/bin/udhcpc -t 1 -T 1 -A 1 -f -i eth0 -O 121 -O 119 -s /neonvm/bin/udhcpc.script
+::respawn:/neonvm/bin/udevd
+::wait:/neonvm/bin/udev-init.sh
+::respawn:/neonvm/bin/acpid -f -c /neonvm/acpi
+#::respawn:/neonvm/bin/vector -c /neonvm/config/vector.yaml --config-dir /etc/vector --color never
+::respawn:/neonvm/bin/chronyd -n -f /neonvm/config/chrony.conf -l /var/log/chrony/chrony.log
+::respawn:/neonvm/bin/sshd -E /var/log/ssh.log -f /neonvm/config/sshd_config
+::respawn:/neonvm/bin/neonvmd --addr=0.0.0.0:25183
+::respawn:/neonvm/bin/vmstart
+
+::sysinit:su -p root -c 'ulimit -c unlimited; /usr/sbin/cgconfigparser -l /etc/cgconfig.conf -s 1664'
+
+::sysinit:su -p root -c 'ulimit -c unlimited; PGDATA=/var/lib/postgresql/data; mkdir -p $PGDATA /run/postgresql && chown -R postgres:postgres $PGDATA /run/postgresql && [ -s "$PGDATA/PG_VERSION" ] || /neonvm/bin/su-exec postgres sh -c "PGDATA=$PGDATA pg_ctl init"'
+
+::respawn:su -p vm-monitor -c 'ulimit -c unlimited; RUST_LOG=info /usr/bin/vm-monitor --cgroup=neon-test --addr="0.0.0.0:10301"'
+
+::wait:su -p root -c 'ulimit -c unlimited; rm -rf /tmp/neon-logs.fifo; mkfifo -m 0666 /tmp/neon-logs.fifo'
+
+::respawn:su -p root -c 'ulimit -c unlimited; cat /tmp/neon-logs.fifo > /dev/virtio-ports/tech.neon.log.0'
+
+::once:su -p postgres -c 'ulimit -c unlimited; PGDATA=/var/lib/postgresql/data pg_ctl start -o "-c config_file=/var/lib/postgresql/data/postgresql.conf -c hba_file=/var/lib/postgresql/data/pg_hba.conf" -l /tmp/neon-logs.fifo'
+
+ttyS0::respawn:/neonvm/bin/agetty --8bits --local-line --noissue --noclear --noreset --host console --login-program /neonvm/bin/login --login-pause --autologin root 115200 ttyS0 linux
+::shutdown:/neonvm/bin/vmshutdown
