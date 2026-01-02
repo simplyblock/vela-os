@@ -116,7 +116,7 @@ endif
 POSTGRESQL_18_CONF_ENV += CFLAGS="$(POSTGRESQL_18_CFLAGS)"
 
 define POSTGRESQL_18_USERS
-	postgres -1 postgres -1 * /var/lib/pgsql /bin/sh - PostgreSQL Server
+	postgres -1 postgres -1 * /var/lib/postgresql /bin/sh - PostgreSQL Server
 endef
 
 define POSTGRESQL_18_INSTALL_TARGET_FIXUP
