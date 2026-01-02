@@ -87,14 +87,17 @@ case "${1}" in
   clean )
     case "${2}" in
       target )
+        echo "Cleaning target directory..."
         rm -rf ${BR2_OUTPUT_PATH}/target
         find ${BR2_OUTPUT_PATH}/ -name ".stamp_target_installed" | xargs rm -rf
       ;;
 
       * )
         if [ "${2}" != "" ] && [ "$(make ${2}-show-depends > /dev/null 2>&1 && echo $?)" == "0" ]; then
+          echo "Cleaning package ${2}..."
           ${MAKE} ${2}-dirclean
         else
+          echo "Cleaning everything..."
           ${MAKE} clean
         fi
       ;;
