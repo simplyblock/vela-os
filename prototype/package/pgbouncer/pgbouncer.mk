@@ -1,0 +1,29 @@
+PGBOUNCER_VERSION = 1_25_1
+PGBOUNCER_SOURCE = pgbouncer_$(PGBOUNCER_VERSION).tar.gz
+PGBOUNCER_SITE = https://github.com/pgbouncer/pgbouncer/archive/refs/tags
+PGBOUNCER_LICENSE = ISC
+PGBOUNCER_DEPENDENCIES = host-pkgconf libopenssl libevent c-ares linux-pam
+PGBOUNCER_MAKE_ENV = \
+	$(TARGET_MAKE_ENV) \
+	CFLAGS="$(TARGET_CFLAGS)" \
+	PKG_CONFIG="$(HOST_DIR)/bin/pkg-config"
+
+define PGBOUNCER_CONFIGURE_CMDS
+	cd $(@D) && \
+	./autogen.sh && \
+	./configure --help && \
+	$(PGBOUNCER_MAKE_ENV) \
+	./configure --prefix=/usr --with-pam
+endef
+
+define PGBOUNCER_BUILD_CMDS
+	cd $(@D) && \
+	$(PGBOUNCER_MAKE_ENV) \
+	$(MAKE1) $(TARGET_CONFIGURE_OPTS) PKGCONFIG="$(PKG_CONFIG_HOST_BINARY)" OPTFLAGS="" -C $(@D)
+endef
+
+define PGBOUNCER_INSTALL_TARGET_CMDS
+	$(INSTALL) $(@D)/pgbouncer $(TARGET_DIR)/usr/sbin/pgbouncer
+endef
+
+$(eval $(generic-package))

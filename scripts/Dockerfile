@@ -38,6 +38,7 @@ RUN apt update && \
   python3 \
   golang \
   docker.io \
+  pandoc \
   libssl-dev && \
   rm -rf /var/lib/apt-lists/* && \
   locale-gen en_US.UTF-8 && \
