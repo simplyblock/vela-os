@@ -167,11 +167,12 @@ dockerVolumes=" --volume=${volDevkit}:${PATH_DEVKIT} \
 "
 
 # Adding CCACHE features
-#if [ ${AUTOBUILD_MODE} ]; then
+if [ ${AUTOBUILD_MODE} ] && [ "${DISABLE_CCACHE}" != "" ]; then
     dockerVolumes+="--volume=${HOME}/ccache:${PATH_CCACHE}"
+    export BR2_CCACHE="y"
     export BR2_USE_CCACHE="1"
     export BR2_CCACHE_DIR="${PATH_CCACHE}"
-#fi
+fi
 
 export BR2_EXTERNAL="${PATH_PROTOTYPE}"
 export BR2_EXTERNAL_CONFIGS="${BR2_EXTERNAL}/configs"
