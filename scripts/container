@@ -92,10 +92,17 @@ case "${1}" in
         find ${BR2_OUTPUT_PATH}/ -name ".stamp_target_installed" | xargs rm -rf
       ;;
 
+      ccache )
+        echo "Cleaning CCACHE directory..."
+        rm -rf ${HOME}/ccache
+      ;;
+
       * )
-        if [ "${2}" != "" ] && [ "$(make ${2}-show-depends > /dev/null 2>&1 && echo $?)" == "0" ]; then
+        if [ "${2}" != "" ]; then
           echo "Cleaning package ${2}..."
-          ${MAKE} ${2}-dirclean
+          if [ "$(${MAKE} ${2}-show-depends > /dev/null 2>&1 && echo $?)" == "0" ]; then
+            ${MAKE} ${2}-dirclean
+          fi
         else
           echo "Cleaning everything..."
           ${MAKE} clean
@@ -105,14 +112,13 @@ case "${1}" in
   ;;
 
   build )
-    export BR2_JLEVEL=$(expr $(cat /proc/cpuinfo | grep processor | wc -l) + 1)
     echo "Running multithreaded build with ${BR2_JLEVEL} make instances"
     if [ "${2}" == "dts" ]; then
        ${MAKE} linux-rebuild
     elif [ ! "${2}" == "" ]; then
       ${MAKE} ${2}-build
     else
-      ${MAKE} -j4 #&& ${MAKE} legal-info
+      ${MAKE}
     fi
   ;;
 
@@ -134,11 +140,15 @@ case "${1}" in
     cp ${BR2_OUTPUT_PATH}/graphs/build.* ${BR2_OUTPUT_PATH}/images/
   ;;
 
-  buildsize )#
+  buildsize )
     ${MAKE} graph-size
     cp ${BR2_OUTPUT_PATH}/graphs/graph-size.pdf ${BR2_OUTPUT_PATH}/images/
     cp ${BR2_OUTPUT_PATH}/graphs/package-size-stats.csv ${BR2_OUTPUT_PATH}/images/
     cp ${BR2_OUTPUT_PATH}/graphs/file-size-stats.csv ${BR2_OUTPUT_PATH}/images/
+  ;;
+
+  licenses )
+    ${MAKE} legal-info
   ;;
 
   makesdk )

@@ -63,12 +63,14 @@ Commands:
   clean
     - clean [all]         Cleans up the working space
     - clean target        Cleans the device' target directory only
+    - clean ccache        Cleans the CCACHE cache directory
     - clean <package>     Cleans the build directory of the given package
   makesdk                 Prebuilds the SDK for reuse
   download                Downloads all necessary source packages without building them
   dependencies            Builds a dependency graph of packages
   buildtimegraph          Builds a graph of the compile times of all packages
   buildsize               Builds information about the package sizes in the target filesystem
+  licenses                Builds the legal information of all packages in the target filesystem
   env                     Prints all build environment variables
   initialize              Initializes and downloads submodules
   restoresdk              Downloads and restores the prebuilt SDK
