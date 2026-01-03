@@ -85,7 +85,10 @@ function executable() {
 }
 
 if [ "${AUTOBUILD_MODE}" == "" ]; then
-  if [ "${JOB_NAME}" != "" ]; then
+  if [ "${GITHUB_ACTIONS}" != "" ]; then
+    echo "Detected Github Actions builder, running non-interactive"
+    AUTOBUILD_MODE=true
+  elif [ "${JOB_NAME}" != "" ]; then
     echo "Detected Jenkins builder, running non-interactive"
     AUTOBUILD_MODE=true
   fi
