@@ -37,6 +37,7 @@ RUN apt update && \
   python3-argparse-addons \
   python3 \
   golang \
+  docker.io \
   libssl-dev && \
   rm -rf /var/lib/apt-lists/* && \
   locale-gen en_US.UTF-8 && \

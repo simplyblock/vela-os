@@ -160,6 +160,7 @@ dockerVolumes=" --volume=${volDevkit}:${PATH_DEVKIT} \
     --volume=${volOutput}:${PATH_OUTPUT} \
     --volume=${BASEDIR}/images:${PATH_IMAGES} \
     --volume=${HOME}/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub \
+    --volume=/var/run/docker.sock:/var/run/docker.sock \
 "
 
 # Adding CCACHE features

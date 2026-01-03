@@ -68,6 +68,7 @@ case "${args[0]}" in
 
         ${DOCKER} run --rm ${dockerVolumes} \
             --name=${containerName}-task \
+            --privileged \
             -w /opt/builder \
             ${LOCAL_ENV} \
             --env GITHUB_TOKEN=$(cat ~/.vela-github-private-token) \
