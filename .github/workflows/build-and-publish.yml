@@ -1,0 +1,20 @@
+name: Build and Publish
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: buildroot-builder
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Docker build environment
+        run: |
+          ./builder docker setup
+      - name: Prepare environment
+        run: |
+          ./builder setup
+      - name: Build
+        run: |
+          ./builder build
