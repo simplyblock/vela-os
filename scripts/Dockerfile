@@ -36,6 +36,7 @@ RUN apt update && \
   python3-numpy \
   python3-argparse-addons \
   python3 \
+  libbz2-dev \
   golang \
   docker.io \
   pandoc \
