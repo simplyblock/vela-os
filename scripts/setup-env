@@ -186,12 +186,20 @@ dockerVolumes=" --volume=${volDevkit}:${PATH_DEVKIT} \
     --volume=${volDownloadCache}:${PATH_DL_CACHE} \
     --volume=${HOME}/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub \
     --volume=/var/run/docker.sock:/var/run/docker.sock \
-    --volume=${BASEDIR}/.git:${PATH_DEVKIT}/.git \
 "
+
+# If we are running a saveconfig, also mount .git
+if [ "${args[0]}" = "saveconfig" ]; then
+  dockerVolumes+="
+  --volume=${BASEDIR}/.git:${PATH_DEVKIT}/.git \
+"
+fi
 
 # If we have a configuration store, mount it
 if [ -f ./builder.conf ]; then
-    dockerVolumes+="--volume=$(pwd)/builder.conf:${PATH_DEVKIT}/builder.conf"
+    dockerVolumes+="
+    --volume=$(pwd)/builder.conf:${PATH_DEVKIT}/builder.conf \
+"
 fi
 
 # Adding CCACHE features
@@ -210,4 +218,4 @@ export BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL}/boards/common/"
 
 export BUILDROOT_PATH="${PATH_BUILDROOT}"
 export BR2_OUTPUT_PATH="${PATH_OUTPUT}"
-export BR2_DLCACHE_PATH="${PATH_DL_CACHE}"
+export BR2_DL_DIR="${PATH_DL_CACHE}"
