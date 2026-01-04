@@ -125,7 +125,12 @@ case "${1}" in
 
       ccache )
         echo "Cleaning CCACHE directory..."
-        rm -rf ${HOME}/ccache
+        rm -rf ${HOME}/ccache/*
+      ;;
+
+      dlcache )
+        echo "Cleaning download directory..."
+        rm -rf ${HOME}/dlcache/*
       ;;
 
       * )

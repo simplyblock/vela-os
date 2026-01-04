@@ -163,14 +163,15 @@ PATH_CCACHE="${PATH_DEVKIT}/ccache"
 # Volumes
 volDevkit="${containerName}-velaos"
 volOutput="${containerName}-output"
-volDownloadCache="${containerName}-dlcache"
+volCompilerCache="${HOME}/ccache"
+volDownloadCache="${HOME}/dlcache"
 
-internalVolumes=($volDownloadCache $volOutput $volDevkit)
+internalVolumes=($volOutput $volDevkit)
 
+# Configure download cache
 if [ ! "${EXT_DL_CACHE}" = "" ]; then
   volDownloadCache="${EXT_DL_CACHE}"
 fi
-volCompilerCache="${HOME}/ccache"
 
 # After setup, the paths are fixed, resolve them now
 resolveVolumes
