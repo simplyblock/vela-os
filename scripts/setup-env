@@ -85,20 +85,12 @@ function executable() {
 }
 
 function resolveVolumes() {
-  if [[ $(insideContainer) != 0 ]]; then
+  if [[ $(insideContainer) == 0 ]]; then
     if [ -f "${PATH_DEVKIT}/builder.conf" ]; then
-      echo "Resolving directory configuration from builder.conf..."
+      echo "Loading builder.conf..."
       . "${PATH_DEVKIT}/builder.conf"
     fi
   fi
-}
-
-function pushd () {
-    command pushd "$@" > /dev/null
-}
-
-function popd () {
-    command popd "$@" > /dev/null
 }
 
 if [ "${AUTOBUILD_MODE}" == "" ]; then
@@ -188,13 +180,6 @@ dockerVolumes=" --volume=${volDevkit}:${PATH_DEVKIT} \
     --volume=/var/run/docker.sock:/var/run/docker.sock \
 "
 
-# If we are running a saveconfig, also mount .git
-if [ "${args[0]}" = "saveconfig" ]; then
-  dockerVolumes+="
-  --volume=${BASEDIR}/.git:${PATH_DEVKIT}/.git \
-"
-fi
-
 # If we have a configuration store, mount it
 if [ -f ./builder.conf ]; then
     dockerVolumes+="
@@ -207,8 +192,7 @@ if [ ${AUTOBUILD_MODE} ] || [ "${DISABLE_CCACHE}" == "" ]; then
     dockerVolumes+="
     --volume=${volCompilerCache}:${PATH_CCACHE} \
 "
-    export BR2_CCACHE="y"
-    export BR2_USE_CCACHE="1"
+    export BR2_USE_CCACHE=1
     export BR2_CCACHE_DIR="${PATH_CCACHE}"
 fi
 

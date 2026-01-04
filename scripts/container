@@ -18,6 +18,11 @@ expand:
 EOF
 }
 
+function getBusyboxConfigPath() {
+  bbconf="$(cat "$1" | grep BR2_PACKAGE_BUSYBOX_CONFIG= | sed 's/BR2_PACKAGE_BUSYBOX_CONFIG="\(.*\)"/\1/')"
+  echo "$(expandBuildrootVariables "${bbconf}")"
+}
+
 function setupBuildroot() {
   board=${1:-`echo vela-qemu-x64`}
   case "${board}" in
@@ -35,19 +40,23 @@ function setupBuildroot() {
     exit 1
   fi
 
-  echo "Creating builder configuration..."
-  echo "${PATH_DEVKIT}/builder.conf"
-  [ -f "${PATH_DEVKIT}/builder.conf" ] && rm -rf "${PATH_DEVKIT}/builder.conf"
-  echo "volDownloadCache=\"${volDownloadCache}\"" > "${PATH_DEVKIT}/builder.conf"
-  echo "volCompilerCache=\"${volCompilerCache}\"" >> "${PATH_DEVKIT}/builder.conf"
-  if [ -f ${PATH_PROTOTYPE}/configs/${defconfig} ]; then
-    echo "busyboxDefconfig=\"${PATH_PROTOTYPE}/configs/${defconfig}\"" >> "${PATH_DEVKIT}/builder.conf"
-  elif [ -f ${PATH_BUILDROOT}/configs/${defconfig} ]; then
-    echo "busyboxDefconfig=\"${PATH_BUILDROOT}/configs/${defconfig}\"" >> "${PATH_DEVKIT}/builder.conf"
-  fi
-
   echo "Setting up buildroot to use configuration '${defconfig}'"
   make O=${BR2_OUTPUT_PATH} ${defconfig}
+
+  if [ -f ${PATH_OUTPUT}/.config ]; then
+    echo "Creating builder configuration..."
+    echo "${PATH_DEVKIT}/builder.conf"
+    [ -f "${PATH_DEVKIT}/builder.conf" ] && rm -rf "${PATH_DEVKIT}/builder.conf"
+    echo "volDownloadCache=\"${volDownloadCache}\"" > "${PATH_DEVKIT}/builder.conf"
+    echo "volCompilerCache=\"${volCompilerCache}\"" >> "${PATH_DEVKIT}/builder.conf"
+    if [ -f ${PATH_PROTOTYPE}/configs/${defconfig} ]; then
+      echo "buildrootDefconfig=\"${PATH_PROTOTYPE}/configs/${defconfig}\"" >> "${PATH_DEVKIT}/builder.conf"
+    elif [ -f ${PATH_BUILDROOT}/configs/${defconfig} ]; then
+      echo "buildrootDefconfig=\"${PATH_BUILDROOT}/configs/${defconfig}\"" >> "${PATH_DEVKIT}/builder.conf"
+    fi
+    busyboxConfig="$(getBusyboxConfigPath "${PATH_OUTPUT}/.config")"
+    echo "busyboxDefconfig=\"${busyboxConfig}\"" >> "${PATH_DEVKIT}/builder.conf"
+  fi
 }
 
 cd ${PATH_BUILDROOT}
@@ -94,14 +103,14 @@ case "${1}" in
 
     if ls ${BR2_OUTPUT_PATH}/build/busybox-* 1> /dev/null 2>&1; then
       echo "Saving Busybox configuration..."
+      bbconf="$(getBusyboxConfigPath "${buildrootDefconfig}")"
+      cp "${bbconf}" "${bbconf}.old"
       ${MAKE} busybox-update-config
-      pushd "${PATH_DEVKIT}"
-      bbconf="$(cat ${busyboxDefconfig} | grep BR2_PACKAGE_BUSYBOX_CONFIG | sed 's/BR2_PACKAGE_BUSYBOX_CONFIG="\(.*\)"/\1/')"
-      bbconf="$(expandBuildrootVariables "${bbconf}")"
-      [ "$(git diff -u "${bbconf}" | grep -c "@@")" = "1" ] && \
+      [ "$(diff -u "${bbconf}" "${bbconf}.old" | grep -c "@@")" = "1" ] && \
           echo "Busybox config unchanged, reverting..." && \
-          git checkout "${bbconf}"
-      popd
+          rm "${bbconf}" && \
+          mv "${bbconf}.old" "${bbconf}"
+      [ -f "${bbconf}.old" ] && rm "${bbconf}.old"
     fi
 
     if ls ${BR2_OUTPUT_PATH}/build/barebox-* 1> /dev/null 2>&1; then
