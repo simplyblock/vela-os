@@ -202,7 +202,12 @@ case "${1}" in
   ;;
 
   restoresdk )
-    echo "Restoring an SDK is not yet supported"
+    sdkname="x86_64-buildroot-linux-gnu_sdk-buildroot-host-${OS,,}-${ARCH}"
+    echo "Restoring SDK ${sdkname}..."
+    wget https://www.simplyblock.io/sdk/${sdkname}.tar.gz
+    mkdir ${BR2_OUTPUT_PATH}/host
+    tar xvfz ${sdkname}.tar.gz -C ${BR2_OUTPUT_PATH}/host --strip-components=1
+    rm ${sdkname}.tar.gz
   ;;
 
   env )

@@ -22,7 +22,7 @@ echo "Devkit Base Path: ${BASEDIR}"
 
 args=("$@")
 case "${args[0]}" in
-  setup|config|saveconfig|clean|build|rebuild|download|dependencies|buildtimegraph|buildsize|env|makesdk )
+  setup|config|saveconfig|clean|build|rebuild|download|dependencies|buildtimegraph|buildsize|env|makesdk|restoresdk )
     source ${BASEDIR}/scripts/helper "${args[@]}"
   ;;
 
