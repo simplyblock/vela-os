@@ -1,6 +1,6 @@
 SU_EXEC_VERSION = 0.3
 SU_EXEC_SOURCE = v$(SU_EXEC_VERSION).tar.gz
-SU_EXEC_SITE =  https://github.com/ncopa/su-exec/archive/refs/tags
+SU_EXEC_SITE = https://github.com/ncopa/su-exec/archive/refs/tags
 SU_EXEC_LICENSE = MIT
 
 define SU_EXEC_BUILD_CMDS
