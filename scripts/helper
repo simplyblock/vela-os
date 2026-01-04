@@ -5,6 +5,13 @@ if [ ${IS_WSL} ]; then
   exit 1
 fi
 
+function hideBaseDirectories() {
+  path="$1"
+  path="${path/$BASEDIR/basedir:}"
+  path="${path/$HOME/home:}"
+  echo "$path"
+}
+
 INTERACTIVE=""
 if [ ! ${AUTOBUILD_MODE} ] && [ -n "${TERM}" ]; then
     echo "Running in interactive mode"
@@ -45,15 +52,15 @@ case "${args[0]}" in
         echo "Loading container environment..."
         echo "Mounting volumes:"
         echo "  - ${volDevkit} => ${PATH_DEVKIT}"
-        echo "  - ${BASEDIR}/scripts => ${PATH_SCRIPTS}"
-        echo "  - ${BASEDIR}/prototype => ${PATH_PROTOTYPE}"
-        echo "  - ${BASEDIR}/buildroot => ${PATH_BUILDROOT}"
-        echo "  - ${volDownloadCache} => ${PATH_DL_CACHE}"
+        echo "  - basedir:/scripts => ${PATH_SCRIPTS}"
+        echo "  - basedir:/prototype => ${PATH_PROTOTYPE}"
+        echo "  - basedir:/buildroot => ${PATH_BUILDROOT}"
+        echo "  - $(hideBaseDirectories "${volDownloadCache}") => ${PATH_DL_CACHE}"
         echo "  - ${volOutput} => ${PATH_OUTPUT}"
-        echo "  - ${BASEDIR}/images => ${PATH_IMAGES}"
+        echo "  - basedir:/images => ${PATH_IMAGES}"
 
-        if [ ${AUTOBUILD_MODE} ] && [ "${DISABLE_CCACHE}" != "" ]; then
-            echo "  - ${HOME}/ccache => ${PATH_CCACHE}"
+        if [ ${AUTOBUILD_MODE} ] || [ "${DISABLE_CCACHE}" == "" ]; then
+            echo "  - home:/ccache => ${PATH_CCACHE}"
         fi
 
         echo ""

@@ -84,6 +84,23 @@ function executable() {
   exit 0
 }
 
+function resolveVolumes() {
+  if [[ $(insideContainer) != 0 ]]; then
+    if [ -f "${PATH_DEVKIT}/builder.conf" ]; then
+      echo "Resolving directory configuration from builder.conf..."
+      . "${PATH_DEVKIT}/builder.conf"
+    fi
+  fi
+}
+
+function pushd () {
+    command pushd "$@" > /dev/null
+}
+
+function popd () {
+    command popd "$@" > /dev/null
+}
+
 if [ "${AUTOBUILD_MODE}" == "" ]; then
   if [ "${GITHUB_ACTIONS}" != "" ]; then
     echo "Detected Github Actions builder, running non-interactive"
@@ -110,7 +127,7 @@ test ${IS_WINDOWS} && [ "$(detectWSL)" == "0" ] && export IS_WSL=true
 test ${IS_LINUX} && [ "$(detectWSL2)" == "0" ] && export IS_WSL2=true
 
 # Executables
-if [[ $(insideContainer) == 1 ]]; then
+if [[ $(insideContainer) != 0 ]]; then
   echo "Checking necessary executables..."
   export DOCKER="$(executable docker)"
   test $? == 0 || exit 1
@@ -145,30 +162,42 @@ PATH_CCACHE="${PATH_DEVKIT}/ccache"
 
 # Volumes
 volDevkit="${containerName}-velaos"
-volDownloadCache="${containerName}-dlcache"
 volOutput="${containerName}-output"
+volDownloadCache="${containerName}-dlcache"
 
 internalVolumes=($volDownloadCache $volOutput $volDevkit)
 
 if [ ! "${EXT_DL_CACHE}" = "" ]; then
   volDownloadCache="${EXT_DL_CACHE}"
 fi
+volCompilerCache="${HOME}/ccache"
+
+# After setup, the paths are fixed, resolve them now
+resolveVolumes
 
 # Docker Volume Mounts
 dockerVolumes=" --volume=${volDevkit}:${PATH_DEVKIT} \
     --volume=${BASEDIR}/scripts:${PATH_SCRIPTS} \
     --volume=${BASEDIR}/prototype:${PATH_PROTOTYPE} \
     --volume=${BASEDIR}/buildroot:${PATH_BUILDROOT} \
-    --volume=${volDownloadCache}:${PATH_DL_CACHE} \
-    --volume=${volOutput}:${PATH_OUTPUT} \
     --volume=${BASEDIR}/images:${PATH_IMAGES} \
+    --volume=${volOutput}:${PATH_OUTPUT} \
+    --volume=${volDownloadCache}:${PATH_DL_CACHE} \
     --volume=${HOME}/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub \
     --volume=/var/run/docker.sock:/var/run/docker.sock \
+    --volume=${BASEDIR}/.git:${PATH_DEVKIT}/.git \
 "
 
+# If we have a configuration store, mount it
+if [ -f ./builder.conf ]; then
+    dockerVolumes+="--volume=$(pwd)/builder.conf:${PATH_DEVKIT}/builder.conf"
+fi
+
 # Adding CCACHE features
-if [ ${AUTOBUILD_MODE} ] && [ "${DISABLE_CCACHE}" != "" ]; then
-    dockerVolumes+="--volume=${HOME}/ccache:${PATH_CCACHE}"
+if [ ${AUTOBUILD_MODE} ] || [ "${DISABLE_CCACHE}" == "" ]; then
+    dockerVolumes+="
+    --volume=${volCompilerCache}:${PATH_CCACHE} \
+"
     export BR2_CCACHE="y"
     export BR2_USE_CCACHE="1"
     export BR2_CCACHE_DIR="${PATH_CCACHE}"
