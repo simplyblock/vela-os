@@ -16,8 +16,6 @@ jobs:
           ./builder docker purge
           ./builder docker setup
       - name: Prepare environment
-        env:
-          EXT_DL_CACHE: "${{ env.HOME }}/dlcache"
         run: |
           ./builder setup
       - name: Build
