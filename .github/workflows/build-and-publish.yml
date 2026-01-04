@@ -18,7 +18,6 @@ jobs:
       - name: Prepare environment
         run: |
           ./builder setup
-          ./builder restoresdk
       - name: Build
         run: |
           ./builder build

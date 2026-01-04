@@ -64,6 +64,8 @@ MAKE="make O= O=${BR2_OUTPUT_PATH}"
 
 echo "Loading buildroot..."
 
+export SDK_NAME="x86_64-buildroot-linux-gnu_sdk-buildroot-host-${OS,,}-${ARCH}"
+
 args=( "$@" )
 case "${1}" in
   setup )
@@ -199,15 +201,6 @@ case "${1}" in
   makesdk )
     ${MAKE} sdk
     mv ${BR2_OUTPUT_PATH}/images/x86_64-buildroot-linux-gnu_sdk-buildroot.tar.gz ${BR2_OUTPUT_PATH}/images/x86_64-buildroot-linux-gnu_sdk-buildroot-host-${OS,,}-${ARCH}.tar.gz
-  ;;
-
-  restoresdk )
-    sdkname="x86_64-buildroot-linux-gnu_sdk-buildroot-host-${OS,,}-${ARCH}"
-    echo "Restoring SDK ${sdkname}..."
-    wget https://www.simplyblock.io/sdk/${sdkname}.tar.gz
-    mkdir ${BR2_OUTPUT_PATH}/host
-    tar xvfz ${sdkname}.tar.gz -C ${BR2_OUTPUT_PATH}/host --strip-components=1
-    rm ${sdkname}.tar.gz
   ;;
 
   env )

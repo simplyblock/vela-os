@@ -29,7 +29,7 @@ fi
 
 args=( "$@" )
 case "${args[0]}" in
-    shell|setup|config|saveconfig|clean|purge|rebuild|build|download|dependencies|buildtimegraph|buildsize|env|makesdk|restoresdk|licenses )
+    shell|setup|config|saveconfig|clean|purge|rebuild|build|download|dependencies|buildtimegraph|buildsize|env|makesdk|licenses )
         ${DOCKER} stats --no-stream > /dev/null 2>&1
         if [ "$?" == "1" ]; then
           echo "Docker daemon is not available, not running?"
