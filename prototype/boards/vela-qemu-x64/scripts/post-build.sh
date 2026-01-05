@@ -58,6 +58,7 @@ makeSymlink "/usr/sbin/chronyd" "${TARGET_DIR}/neonvm/bin/chronyd"
 makeSymlink "/usr/sbin/sshd" "${TARGET_DIR}/neonvm/bin/sshd"
 makeSymlink "/usr/sbin/acpid" "${TARGET_DIR}/neonvm/bin/acpid"
 makeSymlink "/usr/bin/flock" "${TARGET_DIR}/neonvm/bin/flock"
+makeSymlink "/sbin/blkid" "${TARGET_DIR}/neonvm/bin/blkid"
 
 rm ${TARGET_DIR}/etc/init.d/S50postgresql
 

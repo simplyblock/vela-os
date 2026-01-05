@@ -49,5 +49,7 @@ RUN apt update && \
   echo "export NCURSES_NO_UTF8_ACS=1" >> /root/.bashrc && \
   git config --global user.email "builder@simplyblock.io" && \
   git config --global user.name "vela builder" && \
-  mkdir -p /opt/builder
-
+  mkdir -p /opt/builder && \
+  apt-get clean autoclean && \
+  apt-get autoremove --yes && \
+  rm -rf /var/lib/{apt,dpkg,cache,log}/

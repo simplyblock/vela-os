@@ -49,6 +49,7 @@ mount -t tmpfs  -o noexec,nosuid,nodev shm-tmpfs /dev/shm
 
 # neonvm runtime params mounted as iso9660 disk
 echo "Mounting runtime iso..."
+mkdir /neonvm/runtime
 mount -t iso9660 -o ro,mode=0644 /dev/vdb /neonvm/runtime
 
 # mount virtual machine .spec.disks

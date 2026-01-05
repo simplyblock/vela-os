@@ -7,7 +7,7 @@ fi
 
 # Check if we can enable kvm
 # Check host networking tap/vmnet-bridged
-if [ "${OS}" == "OSX" ]; then
+if [ "${BUILDER_OS}" == "OSX" ]; then
   network="vmnet-bridged,id=default,ifname=en0"
 else
   network="tap,id=default,ifname=tap-def,queues=4,script=no,downscript=no,vhost=on"

@@ -109,12 +109,12 @@ export LC_ALL=en_US.UTF-8
 export LC_CTYPE=en_US.UTF-8
 export LANG=en_US.UTF-8
 
-export ARCH=$(detectARCH)
-export OS=$(detectOS)
+export BUILDER_ARCH=$(detectARCH)
+export BUILDER_OS=$(detectOS)
 
-[ "${OS}" == "Linux" ] && export IS_LINUX=true
-[ "${OS}" == "OSX" ] && export IS_OSX=true
-[ "${OS}" == "Windows" ] || [ "$(detectWSL)" == "0" ] && export IS_WINDOWS=true
+[ "${BUILDER_OS}" == "Linux" ] && export IS_LINUX=true
+[ "${BUILDER_OS}" == "OSX" ] && export IS_OSX=true
+[ "${BUILDER_OS}" == "Windows" ] || [ "$(detectWSL)" == "0" ] && export IS_WINDOWS=true
 test ${IS_WINDOWS} && [ "$(detectWSL)" == "0" ] && export IS_WSL=true
 test ${IS_LINUX} && [ "$(detectWSL2)" == "0" ] && export IS_WSL2=true
 
