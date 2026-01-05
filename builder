@@ -12,10 +12,10 @@ ${GIT} fetch --tags
 if test ${IS_WSL2}; then
   echo "Host OS: Linux (Windows with WSL2 backend)"
 else
-  echo "Host OS: ${OS}"
+  echo "Host OS: ${BUILDER_OS}"
 fi
 
-echo "Host Arch: ${ARCH}"
+echo "Host Arch: ${BUILDER_ARCH}"
 echo "Devkit Base Path: ${BASEDIR}"
 
 [ ! -d images ] && mkdir images
