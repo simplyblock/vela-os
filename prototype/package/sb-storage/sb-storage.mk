@@ -1,56 +1,63 @@
-NEONVMD_VERSION = 0.49.1
-NEONVMD_SOURCE = v$(NEONVMD_VERSION).tar.gz
-NEONVMD_SITE = https://github.com/neondatabase/autoscaling/archive/refs/tags
-NEONVMD_LICENSE = Apache2.0
-NEONVMD_DEPENDENCIES = host-go
+SB_STORAGE_VERSION = 1.33.2
+SB_STORAGE_SOURCE = v$(SB_STORAGE_VERSION).tar.gz
+SB_STORAGE_SITE = https://github.com/supabase/storage/archive/refs/tags
+SB_STORAGE_LICENSE = Apache2.0
+SB_STORAGE_DEPENDENCIES = nodejs host-nodejs
 
 ifeq ($(BR2_arm),y)
-GO_GOARCH = arm
-ifeq ($(BR2_ARM_CPU_ARMV5),y)
-GO_GOARM = 5
-else ifeq ($(BR2_ARM_CPU_ARMV6),y)
-GO_GOARM = 6
-else ifeq ($(BR2_ARM_CPU_ARMV7A),y)
-GO_GOARM = 7
-else ifeq ($(BR2_ARM_CPU_ARMV8A),y)
-# Go doesn't support 32-bit GOARM=8 (https://github.com/golang/go/issues/29373)
-# but can still benefit from armv7 optimisations
-GO_GOARM = 7
-endif
+SB_STORAGE_TARGET_ARCH = arm
 else ifeq ($(BR2_aarch64),y)
-GO_GOARCH = arm64
-else ifeq ($(BR2_i386),y)
-GO_GOARCH = 386
-# i386: use softfloat if no SSE2: https://golang.org/doc/go1.16#386
-ifneq ($(BR2_X86_CPU_HAS_SSE2),y)
-GO_GO386 = softfloat
-endif
+SB_STORAGE_TARGET_ARCH = arm64
 else ifeq ($(BR2_x86_64),y)
-GO_GOARCH = amd64
-else ifeq ($(BR2_powerpc64),y)
-GO_GOARCH = ppc64
-else ifeq ($(BR2_powerpc64le),y)
-GO_GOARCH = ppc64le
-else ifeq ($(BR2_mips64),y)
-GO_GOARCH = mips64
-else ifeq ($(BR2_mips64el),y)
-GO_GOARCH = mips64le
-else ifeq ($(BR2_riscv),y)
-GO_GOARCH = riscv64
-else ifeq ($(BR2_s390x),y)
-GO_GOARCH = s390x
+SB_STORAGE_TARGET_ARCH = amd64
 endif
 
-define NEONVMD_BUILD_CMDS
+define SB_STORAGE_BUILD_CMDS
 	cd $(@D) && \
-	GOOS="linux" \
-    GOARCH=$(GO_GOARCH) \
-	go build -o neonvmd neonvm-daemon/cmd/*.go
+	$(NPM) clean-install && \
+	$(NPM) run build && \
+	$(NPM) prune --omit=dev
 endef
 
-define NEONVMD_INSTALL_TARGET_CMDS
-	mkdir -p $(TARGET_DIR)/neonvm/bin
-	$(INSTALL) -D -m 0755 $(@D)/neonvmd $(TARGET_DIR)/neonvm/bin/neonvmd
+define SB_STORAGE_INSTALL_TARGET_CMDS
+	@mkdir -p $(TARGET_DIR)/opt/storage
+	@mkdir -p $(TARGET_DIR)/opt/storage/node_modules
+	@mkdir -p $(TARGET_DIR)/opt/storage/dist
+	@cp -r $(@D)/node_modules/* $(TARGET_DIR)/opt/storage/node_modules/
+	@cp -r $(@D)/dist/* $(TARGET_DIR)/opt/storage/dist/
+	$(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/storage/package.json
+	@echo -e "#!/bin/sh\ncd /opt/storage\n/usr/bin/node dist/start/server.js\n" > $(TARGET_DIR)/opt/storage/server
+    @chmod +x $(TARGET_DIR)/opt/storage/server
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/android*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/android*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/android*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/ios*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/ios*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/ios*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/darwin*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/darwin*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/darwin*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/win32*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/win32*
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/win32*
 endef
+
+define SB_STORAGE_CLEAN_AMD64
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/linux-arm64
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/linux-arm64
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/linux-arm64
+endef
+
+define SB_STORAGE_CLEAN_AARCH64
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/linux-x64
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/linux-x64
+    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/linux-x64
+endef
+
+ifeq ("$(SB_STORAGE_TARGET_ARCH)", "amd64")
+	SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AMD64
+else
+	SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AARCH64
+endif
 
 $(eval $(generic-package))
