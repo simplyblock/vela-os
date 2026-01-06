@@ -2,7 +2,6 @@ SB_STORAGE_VERSION = 1.33.2
 SB_STORAGE_SOURCE = v$(SB_STORAGE_VERSION).tar.gz
 SB_STORAGE_SITE = https://github.com/supabase/storage/archive/refs/tags
 SB_STORAGE_LICENSE = Apache2.0
-SB_STORAGE_LICENSE_FILES = LICENSE
 SB_STORAGE_DEPENDENCIES = nodejs host-nodejs
 
 ifeq ($(BR2_arm),y)
