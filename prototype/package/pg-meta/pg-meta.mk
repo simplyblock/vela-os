@@ -30,18 +30,8 @@ define PG_META_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/meta/package.json
 	@echo -e "#!/bin/sh\ncd /opt/meta\n/usr/bin/node dist/start/server.js\n" > $(TARGET_DIR)/opt/meta/server
     @chmod +x $(TARGET_DIR)/opt/meta/server
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-fs/prebuilds/android*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-os/prebuilds/android*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-url/prebuilds/android*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-fs/prebuilds/ios*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-os/prebuilds/ios*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-url/prebuilds/ios*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-fs/prebuilds/darwin*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-os/prebuilds/darwin*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-url/prebuilds/darwin*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-fs/prebuilds/win32*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-os/prebuilds/win32*
-    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-url/prebuilds/win32*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-darwin*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-win32*
 endef
 
 define PG_META_CLEAN_AMD64
