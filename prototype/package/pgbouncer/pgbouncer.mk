@@ -11,7 +11,6 @@ PGBOUNCER_MAKE_ENV = \
 define PGBOUNCER_CONFIGURE_CMDS
 	cd $(@D) && \
 	./autogen.sh && \
-	./configure --help && \
 	$(PGBOUNCER_MAKE_ENV) \
 	./configure --prefix=/usr --with-pam
 endef
