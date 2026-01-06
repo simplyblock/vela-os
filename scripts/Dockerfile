@@ -40,6 +40,7 @@ RUN apt update && \
   golang \
   docker.io \
   pandoc \
+  upx \
   libssl-dev && \
   rm -rf /var/lib/apt-lists/* && \
   locale-gen en_US.UTF-8 && \

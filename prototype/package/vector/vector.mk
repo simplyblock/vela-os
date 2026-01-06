@@ -10,7 +10,7 @@ VECTOR_TARGET_ARCH = x86_64
 endif
 
 define VECTOR_BUILD_CMDS
-	@echo "Nothing to compile"
+	upx $(@D)/vector-$(VECTOR_TARGET_ARCH)-unknown-linux-gnu/bin/vector
 endef
 
 define VECTOR_INSTALL_TARGET_CMDS
