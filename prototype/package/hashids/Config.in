@@ -1,0 +1,5 @@
+config BR2_PACKAGE_HASHIDS
+	bool "hashids"
+	depends on BR2_PACKAGE_POSTGRESQL_18
+	help
+	  HashIds extension for PostgreSQL.
