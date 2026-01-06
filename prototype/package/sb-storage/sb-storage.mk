@@ -17,7 +17,7 @@ define SB_STORAGE_BUILD_CMDS
 	cd $(@D) && \
 	$(NPM) clean-install && \
 	$(NPM) run build && \
-	$(NPM) prune --omit=dev && \
+	$(NPM) prune --omit=dev --omit=optional && \
 	$(NPM) exec -- modclean -r --patterns="default:*"
 endef
 
