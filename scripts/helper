@@ -87,6 +87,7 @@ case "${args[0]}" in
             --env VELAOS_BUILD_DATE=${VELAOS_BUILD_DATE} \
             --env VELAOS_BUILD_REF=${VELAOS_BUILD_REF} \
             --env VELAOS_BUILD_DEV=${VELAOS_BUILD_DEV} \
+            --env BR2_JLEVEL=${BR2_JLEVEL} \
             ${INTERACTIVE} \
             ${containerName} \
             scripts/container $@
