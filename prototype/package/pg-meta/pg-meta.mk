@@ -1,64 +1,63 @@
-SB_STORAGE_VERSION = 1.33.2
-SB_STORAGE_SOURCE = v$(SB_STORAGE_VERSION).tar.gz
-SB_STORAGE_SITE = https://github.com/supabase/storage/archive/refs/tags
-SB_STORAGE_LICENSE = Apache2.0
-SB_STORAGE_DEPENDENCIES = nodejs host-nodejs
+PG_META_VERSION = 0.95.1
+PG_META_SOURCE = v$(PG_META_VERSION).tar.gz
+PG_META_SITE = https://github.com/supabase/postgres-meta/archive/refs/tags
+PG_META_LICENSE = Apache2.0
+PG_META_LICENSE_FILES = LICENSE
+PG_META_DEPENDENCIES = nodejs host-nodejs
 
 ifeq ($(BR2_arm),y)
-SB_STORAGE_TARGET_ARCH = arm
+PG_META_TARGET_ARCH = arm
 else ifeq ($(BR2_aarch64),y)
-SB_STORAGE_TARGET_ARCH = arm64
+PG_META_TARGET_ARCH = arm64
 else ifeq ($(BR2_x86_64),y)
-SB_STORAGE_TARGET_ARCH = amd64
+PG_META_TARGET_ARCH = amd64
 endif
 
-define SB_STORAGE_BUILD_CMDS
+define PG_META_BUILD_CMDS
 	cd $(@D) && \
 	$(NPM) clean-install && \
 	$(NPM) run build && \
-	$(NPM) prune --omit=dev && \
+	$(NPM) prune --omit=dev --omit=optional && \
 	$(NPM) exec -- modclean -r --patterns="default:*"
 endef
 
-define SB_STORAGE_INSTALL_TARGET_CMDS
-	@mkdir -p $(TARGET_DIR)/opt/storage
-	@mkdir -p $(TARGET_DIR)/opt/storage/node_modules
-	@mkdir -p $(TARGET_DIR)/opt/storage/dist
-	@cp -r $(@D)/node_modules/* $(TARGET_DIR)/opt/storage/node_modules/
-	@cp -r $(@D)/dist/* $(TARGET_DIR)/opt/storage/dist/
-	$(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/storage/package.json
-	@echo -e "#!/bin/sh\ncd /opt/storage\n/usr/bin/node dist/start/server.js\n" > $(TARGET_DIR)/opt/storage/server
-    @chmod +x $(TARGET_DIR)/opt/storage/server
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/android*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/android*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/android*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/ios*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/ios*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/ios*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/darwin*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/darwin*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/darwin*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/win32*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/win32*
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/win32*
+define PG_META_INSTALL_TARGET_CMDS
+	@mkdir -p $(TARGET_DIR)/opt/meta
+	@mkdir -p $(TARGET_DIR)/opt/meta/node_modules
+	@mkdir -p $(TARGET_DIR)/opt/meta/dist
+	@cp -r $(@D)/node_modules/* $(TARGET_DIR)/opt/meta/node_modules/
+	@cp -r $(@D)/dist/* $(TARGET_DIR)/opt/meta/dist/
+	$(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/meta/package.json
+	@echo -e "#!/bin/sh\ncd /opt/meta\n/usr/bin/node dist/start/server.js\n" > $(TARGET_DIR)/opt/meta/server
+    @chmod +x $(TARGET_DIR)/opt/meta/server
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-fs/prebuilds/android*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-os/prebuilds/android*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-url/prebuilds/android*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-fs/prebuilds/ios*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-os/prebuilds/ios*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-url/prebuilds/ios*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-fs/prebuilds/darwin*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-os/prebuilds/darwin*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-url/prebuilds/darwin*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-fs/prebuilds/win32*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-os/prebuilds/win32*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/bare-url/prebuilds/win32*
 endef
 
-define SB_STORAGE_CLEAN_AMD64
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/linux-arm64
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/linux-arm64
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/linux-arm64
+define PG_META_CLEAN_AMD64
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-linux-arm64*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-linux-x64-musl*
 endef
 
-define SB_STORAGE_CLEAN_AARCH64
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/linux-x64
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/linux-x64
-    @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/linux-x64
+define PG_META_CLEAN_AARCH64
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-linux-x64*
+    @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-linux-arm64-musl*
 endef
 
-ifeq ("$(SB_STORAGE_TARGET_ARCH)", "amd64")
-	SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AMD64
+ifeq ("$(PG_META_TARGET_ARCH)", "amd64")
+	PG_META_POST_INSTALL_TARGET_HOOKS+=PG_META_CLEAN_AMD64
 else
-	SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AARCH64
+	PG_META_POST_INSTALL_TARGET_HOOKS+=PG_META_CLEAN_AARCH64
 endif
 
 $(eval $(generic-package))
