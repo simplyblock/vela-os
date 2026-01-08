@@ -19,6 +19,8 @@ jobs:
         run: |
           ./builder setup
       - name: Build
+        env:
+          BR2_JLEVEL: 4
         run: |
           ./builder build
 
