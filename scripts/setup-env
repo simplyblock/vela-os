@@ -6,8 +6,9 @@
 }
 
 function insideContainer() {
-  [ -f /.dockerenv ]
-  echo $?
+  [ -f /.dockerenv ] && echo 0
+  [ "$(env | grep container)" != "" ] && echo 0
+  echo 1
 }
 
 function detectARCH() {
