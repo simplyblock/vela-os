@@ -69,6 +69,7 @@ export SDK_NAME="x86_64-buildroot-linux-gnu_sdk-buildroot-host-${BUILDER_OS,,}-$
 args=( "$@" )
 case "${1}" in
   setup )
+    cd buildroot && git reset --hard
     setupBuildroot "${args[@]:1}"
   ;;
 
@@ -179,7 +180,7 @@ case "${1}" in
 
   dependencies )
     BR2_GRAPH_OUT=svg ${MAKE} graph-depends
-    cp ${BR2_OUTPUT_PATH}/graphs/graph-depends.* ${BR2_OUTPUT_PATH}/images/
+    cp ${BR2_OUTPUT_PATH}/graphs/*.svg ${BR2_OUTPUT_PATH}/images/
   ;;
 
   buildtimegraph )
@@ -196,6 +197,7 @@ case "${1}" in
 
   licenses )
     ${MAKE} legal-info
+    mv ${BR2_OUTPUT_PATH}/legal-info ${BR2_OUTPUT_PATH}/images
   ;;
 
   makesdk )
