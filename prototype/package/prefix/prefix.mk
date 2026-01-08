@@ -2,9 +2,8 @@ PREFIX_VERSION = 1.2.10
 PREFIX_SOURCE = v$(PREFIX_VERSION).tar.gz
 PREFIX_SITE = https://github.com/dimitri/prefix/archive/refs/tags
 PREFIX_LICENSE = PostgreSQL
-PREFIX_CONFIG_SCRIPTS = pg_config
 PREFIX_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
-PREFIX_DEPENDENCIES = postgresql-18 boost custom-postgis
+PREFIX_DEPENDENCIES = postgresql
 PREFIX_SUPPORTS_IN_SOURCE_BUILD = NO
 
 define PREFIX_BUILD_CMDS
