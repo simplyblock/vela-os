@@ -9,11 +9,17 @@ fi
 # Check host networking tap/vmnet-bridged
 if [ "${BUILDER_OS}" == "OSX" ]; then
   network="vmnet-bridged,id=default,ifname=en0"
-else
+  accelerator=""
+elif [ "${BUILDER_OS}" == "Linux" ]; then
   network="tap,id=default,ifname=tap-def,queues=4,script=no,downscript=no,vhost=on"
+  accelerator="--enable-kvm"
+else
+  echo "Qemu is not supported on your operating system."
+  exit 1
 fi
 
 qemu-system-x86_64 -machine q35 -nographic -no-reboot -nodefaults -only-migratable \
+${accelerator} \
 -audiodev "none,id=noaudio" -serial pty -msg "timestamp=on" \
 -monitor unix:/tmp/qemu-monitor-socket,server,nowait \
 -qmp "tcp:0.0.0.0:20183,server,wait=off" \
