@@ -2,19 +2,26 @@ ONLINE_ADVISOR_VERSION = 1.0
 ONLINE_ADVISOR_SOURCE = $(ONLINE_ADVISOR_VERSION).tar.gz
 ONLINE_ADVISOR_SITE = https://github.com/knizhnik/online_advisor/archive/refs/tags
 ONLINE_ADVISOR_LICENSE = PostgreSQL
-ONLINE_ADVISOR_CONFIG_SCRIPTS = pg_config
-ONLINE_ADVISOR_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
-ONLINE_ADVISOR_DEPENDENCIES = postgresql-18 boost custom-postgis
-ONLINE_ADVISOR_SUPPORTS_IN_SOURCE_BUILD = NO
+ONLINE_ADVISOR_DEPENDENCIES = postgresql
 
+# PGXS build: use the pg_config from staging so it picks the right include/lib dirs
 define ONLINE_ADVISOR_BUILD_CMDS
-	cd $(@D) && $(MAKE1) PG_CONFIG=$(STAGING_DIR)/usr/bin/pg_config $(TARGET_CONFIGURE_OPTS) PKGCONFIG="$(PKG_CONFIG_HOST_BINARY)" OPTFLAGS="" -C $(@D)
+	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) USE_PGXS=1 \
+		PG_CONFIG=$(STAGING_DIR)/usr/bin/pg_config
 endef
 
+# Install into target rootfs. PGXS honors DESTDIR.
 define ONLINE_ADVISOR_INSTALL_TARGET_CMDS
-	$(INSTALL) $(@D)/online_advisor.so $(TARGET_DIR)/usr/lib/postgresql
-	$(INSTALL) $(@D)/online_advisor.control $(TARGET_DIR)/usr/share/postgresql/extension
-	$(INSTALL) $(@D)/*.sql $(TARGET_DIR)/usr/share/postgresql/extension
+	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) USE_PGXS=1 \
+		PG_CONFIG=$(STAGING_DIR)/usr/bin/pg_config \
+		DESTDIR=$(TARGET_DIR) install
+endef
+
+# Optional: install into staging too (useful if other target packages need it at build time)
+define ONLINE_ADVISOR_INSTALL_STAGING_CMDS
+	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) USE_PGXS=1 \
+		PG_CONFIG=$(STAGING_DIR)/usr/bin/pg_config \
+		DESTDIR=$(STAGING_DIR) install
 endef
 
 $(eval $(generic-package))
