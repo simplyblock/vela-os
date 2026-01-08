@@ -4,7 +4,7 @@ PGTAP_SITE = https://github.com/theory/pgtap/archive/refs/tags
 PGTAP_LICENSE = PostgreSQL
 PGTAP_CONFIG_SCRIPTS = pg_config
 PGTAP_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
-PGTAP_DEPENDENCIES = postgresql-18
+PGTAP_DEPENDENCIES = postgresql
 PGTAP_SUPPORTS_IN_SOURCE_BUILD = NO
 
 define PGTAP_BUILD_CMDS
