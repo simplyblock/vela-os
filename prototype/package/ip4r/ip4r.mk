@@ -2,9 +2,8 @@ IP4R_VERSION = 2.4.2
 IP4R_SOURCE = $(IP4R_VERSION).tar.gz
 IP4R_SITE = https://github.com/RhodiumToad/ip4r/archive/refs/tags
 IP4R_LICENSE = PostgreSQL
-IP4R_CONFIG_SCRIPTS = pg_config
 IP4R_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
-IP4R_DEPENDENCIES = postgresql-18 boost custom-postgis
+IP4R_DEPENDENCIES = postgresql
 IP4R_SUPPORTS_IN_SOURCE_BUILD = NO
 
 define IP4R_BUILD_CMDS
