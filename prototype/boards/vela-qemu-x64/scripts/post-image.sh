@@ -15,6 +15,11 @@ fi
 rm -rf ${BINARIES_DIR}/vmlinux
 
 echo "Building container image wrapper..."
-docker build -t vela-image -f "${BR2_EXTERNAL_VELAOS_PATH}/boards/vela-qemu-x64/scripts/Dockerfile" "${BINARIES_DIR}"
+if [ "${BUILDER_OS}" == "OSX" ]; then
+  BUILD_ENV="DOCKER_DEFAULT_PLATFORM=linux/amd64"
+else
+  BUILD_ENV=""
+fi
+${BUILD_ENV} docker build -t vela-image:latest -f "${BR2_EXTERNAL_VELAOS_PATH}/boards/vela-qemu-x64/scripts/Dockerfile" "${BINARIES_DIR}"
 
 echo "Build completed."
