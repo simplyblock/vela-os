@@ -4,7 +4,7 @@ PGEXPORTER_SITE =  https://github.com/pgexporter/pgexporter/releases/download/$(
 PGEXPORTER_LICENSE = BSD-3-Clause
 PGEXPORTER_CONFIG_SCRIPTS = pg_config
 PGEXPORTER_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
-PGEXPORTER_DEPENDENCIES = postgresql-18 openssl libev bzip2 zstd lz4 libyaml
+PGEXPORTER_DEPENDENCIES = postgresql openssl libev bzip2 zstd lz4 libyaml
 PGEXPORTER_INSTALL_STAGING = YES
 PGEXPORTER_SUPPORTS_IN_SOURCE_BUILD = NO
 PGEXPORTER_CONF_OPTS = -DDOCS=FALSE
