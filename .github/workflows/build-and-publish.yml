@@ -44,6 +44,6 @@ jobs:
       - name: Create manifest list and push
         run: |
           while IFS= read -r tag; do
-            docker tag vela-img:latest "$tag"
+            docker tag vela-image:latest "$tag"
             docker push "$tag"
           done <<< "$(jq -r '.tags[]' <<< '${{ steps.meta.outputs.json }}')"
