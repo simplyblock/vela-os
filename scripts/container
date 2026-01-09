@@ -69,7 +69,6 @@ export SDK_NAME="x86_64-buildroot-linux-gnu_sdk-buildroot-host-${BUILDER_OS,,}-$
 args=( "$@" )
 case "${1}" in
   setup )
-    cd buildroot && git reset --hard
     setupBuildroot "${args[@]:1}"
   ;;
 

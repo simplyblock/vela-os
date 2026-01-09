@@ -38,6 +38,8 @@ case "${args[0]}" in
     git submodule update --init --recursive --remote --checkout
     git submodule update --recursive
     cd buildroot
+    echo "Reset buildroot submodule..."
+    git reset --hard
     for patch in ../patches/*; do
       echo "Applying patch ${patch} to buildroot..."
       patch -s -p1 < ${patch}
