@@ -1,0 +1,14 @@
+diff --git a/src/backend/access/transam/xlogrecovery.c b/src/backend/access/transam/xlogrecovery.c
+index 0b5f871abe7..75a117d4b43 100644
+--- a/src/backend/access/transam/xlogrecovery.c
++++ b/src/backend/access/transam/xlogrecovery.c
+@@ -1128,9 +1128,6 @@ readRecoverySignalFile(void)
+ static void
+ validateRecoveryParameters(void)
+ {
+-	if (!ArchiveRecoveryRequested)
+-		return;
+-
+ 	/*
+ 	 * Check for compulsory parameters
+ 	 */
