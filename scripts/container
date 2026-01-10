@@ -3,6 +3,7 @@
 source ./scripts/setup-env
 
 git config --global credential.helper store
+git config --global url."https://github.com".insteadOf "git://github.com"
 echo "https://${GITHUB_TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials
 
 function expandBuildrootVariables() {
