@@ -6,8 +6,8 @@
 }
 
 function insideContainer() {
-  [ -f /.dockerenv ] && echo 0
-  [ "$(env | grep container)" != "" ] && echo 0
+  [ -f /.dockerenv ] && echo 0 && exit 0
+  [ "$(env | grep container)" != "" ] && echo 0 && exit 0
   echo 1
 }
 
