@@ -1,5 +1,5 @@
-config BR2_PACKAGE_PG_CRON
-	bool "pg-cron"
+config BR2_PACKAGE_PG_JWT
+	bool "pg-jwt"
 	depends on BR2_PACKAGE_POSTGRESQL
 	help
-	  Simple cron-based job scheduler extension for PostgreSQL.
+	  JWT extension for PostgreSQL.
