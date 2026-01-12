@@ -14,7 +14,6 @@ makeSymlink() {
   dest="$2"
 
   if [ -h "${dest}" ]; then
-    echo "${dest} exists. Deleting."
     rm "${dest}"
   fi
   ln -s "${source}" "${dest}"
@@ -30,14 +29,12 @@ linkIfBusybox() {
 
   cmd="$(basename "${dest}")"
   rebased_cmd="${target_base}/${cmd}"
-  echo "Creating symlink for ${rebased_cmd}..."
   makeSymlink "${rebased_cmd}" "${TARGET_DIR}/neonvm/bin/${cmd}"
 }
 
 fixupBusyboxSymlinks() {
   dir="$1"
   target_base="$2"
-  echo "Walking ${dir}..."
   for filename in ${dir}/*; do
     linkIfBusybox "${filename}" "${target_base}"
   done
@@ -60,6 +57,12 @@ makeSymlink "/usr/sbin/acpid" "${TARGET_DIR}/neonvm/bin/acpid"
 makeSymlink "/usr/bin/flock" "${TARGET_DIR}/neonvm/bin/flock"
 makeSymlink "/sbin/blkid" "${TARGET_DIR}/neonvm/bin/blkid"
 makeSymlink "/sbin/vector" "${TARGET_DIR}/neonvm/bin/vector"
+
+echo "Ensuring PostgreSQL extensions are trusted..."
+for filename in output/target/usr/share/postgresql/extension/*.control;
+do
+  grep -qF 'trusted' $filename || echo "trusted = true" >> $filename
+done
 
 rm ${TARGET_DIR}/etc/init.d/S50postgresql
 
