@@ -6,6 +6,10 @@ ENV LC_ALL=en_US.utf8
 ENV LC_CTYPE=en_US.UTF-8
 RUN apt update && \
   apt -y upgrade && \
+  apt install -y postgresql-common && \
+  sed -i 's/read enter//g' /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && \
+  /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh && \
+  apt update && \
   apt -y install \
   wget \
   file \
@@ -41,6 +45,9 @@ RUN apt update && \
   docker.io \
   pandoc \
   upx \
+  clang \
+  rustfmt \
+  postgresql-server-dev-18 \
   libssl-dev && \
   rm -rf /var/lib/apt-lists/* && \
   locale-gen en_US.UTF-8 && \
