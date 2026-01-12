@@ -15,14 +15,12 @@ jobs:
       - name: Set up Docker build environment
         run: |
           ./builder initialize
-          ./builder docker purge
-          ./builder docker setup
+          ./builder docker setup -i
+          ./builder docker clean
       - name: Prepare environment
         run: |
           ./builder setup
       - name: Build
-        env:
-          BR2_JLEVEL: 4
         run: |
           ./builder build
 
