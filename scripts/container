@@ -160,6 +160,7 @@ case "${1}" in
   ;;
 
   build )
+    export BR2_JLEVEL=${BR2_JLEVEL:-$(expr $(cat /proc/cpuinfo | grep processor | wc -l) + 1)}
     echo "Running multithreaded build with ${BR2_JLEVEL} make instances"
     if [ "${2}" == "dts" ]; then
        ${MAKE} linux-rebuild

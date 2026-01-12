@@ -32,16 +32,11 @@ case "${args[0]}" in
     shell|setup|config|saveconfig|clean|purge|rebuild|build|download|dependencies|buildtimegraph|buildsize|env|makesdk|licenses )
         ${DOCKER} stats --no-stream > /dev/null 2>&1
         if [ "$?" == "1" ]; then
-          echo "Docker daemon is not available, not running?"
-          exit 1
-        fi
-
-        ${DOCKER} image list 2>&1 | grep ${containerName} > /dev/null 2>&1
-        if [ "$?" == "1" ]; then
-            echo "No docker environment found, please run './builder docker setup' first"
+            echo "Docker daemon is not available, not running?"
             exit 1
         fi
 
+        ensureContainerImageExists
         source scripts/version
 
         if [ ! -d "${BASEDIR}/images/" ]; then

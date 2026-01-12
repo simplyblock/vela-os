@@ -119,6 +119,9 @@ export BUILDER_OS=$(detectOS)
 test ${IS_WINDOWS} && [ "$(detectWSL)" == "0" ] && export IS_WSL=true
 test ${IS_LINUX} && [ "$(detectWSL2)" == "0" ] && export IS_WSL2=true
 
+# Basic container name
+containerName=${CONTAINERNAME:-vela-os-builder}
+
 # Executables
 if [[ $(insideContainer) != 0 ]]; then
   echo "Checking necessary executables..."
@@ -134,14 +137,18 @@ if [[ $(insideContainer) != 0 ]]; then
   test $? == 0 || exit 1
   echo "awk: ${AWK}"
 
+  export SHA256SUM="$(executable sha256sum)"
+  test $? == 0 || exit 1
+  echo "sha256sum: ${SHA256SUM}"
+
   # Exporting SED makes the libtool fail
   SED="$(executable sed)"
   test $? == 0 || exit 1
   echo "sed: ${SED}"
-fi
 
-# Basic container name
-containerName=${CONTAINERNAME:-vela-os-builder}
+  dockerfileHash="$(${SHA256SUM} scripts/Dockerfile | ${AWK} '{print $1}')"
+  containerImageName="${containerName}-${dockerfileHash}"
+fi
 
 # Directories
 PATH_DEVKIT="/opt/builder"
@@ -196,6 +203,26 @@ if [ ${AUTOBUILD_MODE} ] || [ "${DISABLE_CCACHE}" == "" ]; then
     export BR2_USE_CCACHE=1
     export BR2_CCACHE_DIR="${PATH_CCACHE}"
 fi
+
+function containerImageExists() {
+  ${DOCKER} image list 2>&1 | grep -qF ${containerImageName}
+}
+
+function containerImageOutOfDate() {
+  if containerImageExists; then
+    return 0
+  fi
+  if ${DOCKER} image list 2>&1 | grep -qF ${containerName}; then
+    return 1
+  fi
+}
+
+function ensureContainerImageExists() {
+  if ! containerImageExists; then
+    echo "Container image not yet available or out of date. Please run './builder docker setup'."
+    exit 1
+  fi
+}
 
 export BR2_EXTERNAL="${PATH_PROTOTYPE}"
 export BR2_EXTERNAL_CONFIGS="${BR2_EXTERNAL}/configs"

@@ -38,38 +38,34 @@ function rebuildVolumes() {
 args=( "$@" )
 case "${args[0]}" in
     setup )
-        ${DOCKER} inspect ${containerName} 1> /dev/null 2>&1
-        if [ "$?" == "0" ]; then
+        if containerImageExists; then
             if [ "${args[1]}" == "-i" ]; then
-                echo "Docker container already exists. Skipping build."
+                echo "Container image already exists. Skipping build."
                 exit 0
             fi
-            echo "A Docker container already exists. If you want to recreate it, please run 'builder docker purge'  first"
-            exit 1
         fi
-        cat ${BASEDIR}/scripts/Dockerfile | ${DOCKER} build -t ${containerName} - || exit 1
+        if containerImageOutOfDate; then
+            echo "An older container image already exists. A new version will be built but the old one will still be in the cache. Consider cleaning it."
+        fi
+        cat ${BASEDIR}/scripts/Dockerfile | ${DOCKER} build -t ${containerImageName} - || exit 1
         makeVolumes
     ;;
 
     purge )
-        ${DOCKER} inspect ${containerName} > /dev/null 2>&1
-        if [ "$?" == "0" ]; then
-            ${DOCKER} container rm -f ${containerName}
-            ${DOCKER} image rm -f ${containerName}
+        if containerImageExists; then
+            ${DOCKER} image rm -f ${containerImageName}
             cleanVolumes
         fi
     ;;
 
     clean )
-        ${DOCKER} inspect ${containerName} > /dev/null 2>&1
-        if [ "$?" == "0" ]; then
+        if containerImageExists; then
             rebuildVolumes
         fi
     ;;
 
     rm )
-        ${DOCKER} inspect ${containerName} > /dev/null 2>&1
-        if [ "$?" == "0" ]; then
+        if containerImageExists; then
             cleanVolumes
         fi
     ;;
@@ -77,25 +73,25 @@ case "${args[0]}" in
     shell )
         ${DOCKER} run --rm --name ${containerName}-task \
             -it -w /opt/builder ${dockerVolumes} \
-            ${containerName} \
+            ${containerImageName} \
             /bin/bash
     ;;
 
     store )
-        ${DOCKER} container commit ${containerName}
+        ${DOCKER} container commit ${containerImageName}
     ;;
 
     reclaim )
-        ${DOCKER} image prune --all --force
-        ${DOCKER} container prune --force
+        for image in $(${DOCKER} image list 2>&1 | grep ${containerName}); do
+            ${DOCKER} image ${image}
+        done
     ;;
 
     rebuild )
-        image=$(${DOCKER} image list | grep vela-os-builder | ${AWK} '{print $3}')
-        if [ "${image}" != "" ]; then
-            ${DOCKER} image rm ${image}
-            ${DOCKER} build -f ${BASEDIR}/scripts/Dockerfile -t ${containerName} ${BASEDIR} || exit 1
+        if containerImageExists; then
+            ${DOCKER} image rm ${containerImageName}
         fi
+        cat ${BASEDIR}/scripts/Dockerfile | ${DOCKER} build -t ${containerImageName} - || exit 1
     ;;
 
     * )
