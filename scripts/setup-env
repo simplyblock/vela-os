@@ -202,6 +202,7 @@ if [ ${AUTOBUILD_MODE} ] || [ "${DISABLE_CCACHE}" == "" ]; then
 "
     export BR2_USE_CCACHE=1
     export BR2_CCACHE_DIR="${PATH_CCACHE}"
+    export CCACHE_OPTIONS="--max-size=5G"
 fi
 
 function containerImageExists() {
