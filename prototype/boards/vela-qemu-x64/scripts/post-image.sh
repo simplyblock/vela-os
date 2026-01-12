@@ -15,11 +15,11 @@ fi
 rm -rf ${BINARIES_DIR}/vmlinux
 
 echo "Building container image wrapper..."
-if [ "${BUILDER_OS}" == "OSX" ]; then
-  BUILD_ENV="DOCKER_DEFAULT_PLATFORM=linux/amd64"
-else
-  BUILD_ENV=""
+if [ "${HOST_OS}" = "OSX" ]; then
+  echo "Forcing AMD64 docker image..."
+  export DOCKER_DEFAULT_PLATFORM=linux/amd64
 fi
-${BUILD_ENV} docker build -t vela-image:latest -f "${BR2_EXTERNAL_VELAOS_PATH}/boards/vela-qemu-x64/scripts/Dockerfile" "${BINARIES_DIR}"
+
+docker build -t vela-image:latest -f "${BR2_EXTERNAL_VELAOS_PATH}/boards/vela-qemu-x64/scripts/Dockerfile" "${BINARIES_DIR}"
 
 echo "Build completed."
