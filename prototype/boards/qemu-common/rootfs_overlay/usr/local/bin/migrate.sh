@@ -20,13 +20,15 @@ export PGPASSWORD="$(cat /vela/secrets/db/password)"
 connect="$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE?sslmode=disable"
 
 db="/vela/migrations"
+# create postgres user if non existing
+psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U vela -c "CREATE USER postgres WITH PASSWORD '$PGPASSWORD'" || true
 # run init scripts as postgres user
 for sql in "$db"/init-scripts/*.sql; do
     [ -f "$sql" ] || continue
     echo "$0: running $sql"
-    psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U postgres -f "$sql"
+    psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U vela -f "$sql"
 done
-psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U postgres -c "ALTER USER supabase_admin WITH PASSWORD '$PGPASSWORD'"
+psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U vela -c "ALTER USER supabase_admin WITH PASSWORD '$PGPASSWORD'"
 # run migrations as super user - postgres user demoted in post-setup
 for sql in "$db"/migrations/*.sql; do
     [ -f "$sql" ] || continue
