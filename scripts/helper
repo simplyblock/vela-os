@@ -89,7 +89,7 @@ case "${args[0]}" in
             --env HOST_OS=${BUILDER_OS} \
             --env HOST_ARCH=${BUILDER_ARCH} \
             ${INTERACTIVE} \
-            ${containerName} \
+            ${containerImageName} \
             scripts/container $@
     ;;
 esac
