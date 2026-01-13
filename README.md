@@ -1,4 +1,4 @@
-# Vela Studio
+# Vela OS
 
 <p align="center">
     <a href="https://vela.simplyblock.io">
