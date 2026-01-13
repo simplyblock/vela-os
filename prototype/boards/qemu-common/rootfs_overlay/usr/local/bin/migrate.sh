@@ -15,7 +15,7 @@ set -eu
 export PGDATABASE="${POSTGRES_DB:-postgres}"
 export PGHOST="${POSTGRES_HOST:-localhost}"
 export PGPORT="${POSTGRES_PORT:-5432}"
-export PGPASSWORD="${POSTGRES_PASSWORD:-}"
+export PGPASSWORD="$(cat /vela/secrets/db/password)"
 
 connect="$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE?sslmode=disable"
 
