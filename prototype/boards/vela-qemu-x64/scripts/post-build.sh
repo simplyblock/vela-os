@@ -59,12 +59,12 @@ makeSymlink "/sbin/blkid" "${TARGET_DIR}/neonvm/bin/blkid"
 makeSymlink "/sbin/vector" "${TARGET_DIR}/neonvm/bin/vector"
 
 echo "Ensuring PostgreSQL extensions are trusted..."
-for filename in output/target/usr/share/postgresql/extension/*.control;
+for filename in ${TARGET_DIR}/usr/share/postgresql/extension/*.control;
 do
   grep -qF 'trusted' $filename || echo "trusted = true" >> $filename
 done
 
-rm ${TARGET_DIR}/etc/init.d/S50postgresql
+rm -rf ${TARGET_DIR}/etc/init.d/S50postgresql
 
 rm -rf "${TARGET_DIR}/var/log"
 mkdir -p "${TARGET_DIR}/var/log/chrony"
