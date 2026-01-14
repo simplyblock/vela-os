@@ -28,7 +28,7 @@ define PG_META_INSTALL_TARGET_CMDS
 	@cp -r $(@D)/node_modules/* $(TARGET_DIR)/opt/meta/node_modules/
 	@cp -r $(@D)/dist/* $(TARGET_DIR)/opt/meta/dist/
 	$(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/meta/package.json
-	@echo -e "#!/bin/sh\ncd /opt/meta\n/usr/bin/node dist/server/server.js\n" > $(TARGET_DIR)/opt/meta/server
+	$(INSTALL) -m 0755 $(PG_META_PKGDIR)/server $(TARGET_DIR)/opt/meta
     @chmod +x $(TARGET_DIR)/opt/meta/server
     @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-darwin*
     @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-win32*
