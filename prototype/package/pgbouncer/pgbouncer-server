@@ -1,0 +1,3 @@
+#!/bin/sh
+while ! test -f /var/run/postgresql/.migration.done; do sleep 1; done
+/usr/sbin/pgbouncer /vela/config/pgbouncer_pg18.ini

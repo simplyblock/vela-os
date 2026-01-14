@@ -23,6 +23,7 @@ endef
 
 define PGBOUNCER_INSTALL_TARGET_CMDS
 	$(INSTALL) $(@D)/pgbouncer $(TARGET_DIR)/usr/sbin/pgbouncer
+	$(INSTALL) -m 0755 $(PGBOUNCER_PKGDIR)/pgbouncer-server $(TARGET_DIR)/usr/sbin
 endef
 
 $(eval $(generic-package))
