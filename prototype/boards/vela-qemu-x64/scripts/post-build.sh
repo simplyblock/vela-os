@@ -69,3 +69,4 @@ rm -rf ${TARGET_DIR}/etc/init.d/S50postgresql
 rm -rf "${TARGET_DIR}/var/log"
 mkdir -p "${TARGET_DIR}/var/log/chrony"
 touch "${TARGET_DIR}/var/log/chrony/chrony.log"
+mkdir -p "${TARGET_DIR}/etc/postgresql.conf.d"
