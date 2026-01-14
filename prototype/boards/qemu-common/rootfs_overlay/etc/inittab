@@ -24,7 +24,7 @@
 
 ::once:su -p postgres -c 'ulimit -c unlimited; PGDATA=/var/lib/postgresql/data pg_ctl start -o "-c config_file=/vela/config/postgresql.conf -c hba_file=/vela/config/pg_hba.conf" -l /tmp/neon-logs.fifo'
 ::once:su -p postgres -c 'ulimit -c unlimited; while ! pg_isready; do sleep 1; done && /usr/local/bin/migrate.sh'
-::respawn sh -c 'while ! pg_isready; do sleep 1; done && /opt/meta/server > /tmp/neon-logs.fifo'
+::respawn:su -p root -c '/opt/meta/server > /tmp/neon-logs.fifo'
 
 ttyS0::respawn:/neonvm/bin/agetty --8bits --local-line --noissue --noclear --noreset --host console --login-program /neonvm/bin/login --login-pause --autologin root 115200 ttyS0 linux
 ::shutdown:/neonvm/bin/vmshutdown
