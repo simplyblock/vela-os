@@ -26,6 +26,7 @@
 ::once:su -p postgres -c 'ulimit -c unlimited; while ! pg_isready; do sleep 1; done && /usr/local/bin/migrate.sh'
 ::respawn:su -p root -c '/opt/meta/server > /tmp/neon-logs.fifo'
 ::respawn:su -p root -c '/usr/sbin/postgrest-server > /tmp/neon-logs.fifo'
+::respawn:su -p root -c '/usr/sbin/postgres-exporter-server > /tmp/neon-logs.fifo'
 
 ttyS0::respawn:/neonvm/bin/agetty --8bits --local-line --noissue --noclear --noreset --host console --login-program /neonvm/bin/login --login-pause --autologin root 115200 ttyS0 linux
 ::shutdown:/neonvm/bin/vmshutdown

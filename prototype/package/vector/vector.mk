@@ -15,7 +15,7 @@ endef
 
 define VECTOR_INSTALL_TARGET_CMDS
 	mkdir -p $(TARGET_DIR)/sbin
-	$(INSTALL) $(@D)/vector-$(VECTOR_TARGET_ARCH)-unknown-linux-gnu/bin/vector $(TARGET_DIR)/sbin/vector
+	$(INSTALL) $(@D)/vector-$(VECTOR_TARGET_ARCH)g-unknown-linux-gnu/bin/vector $(TARGET_DIR)/sbin/vector
 endef
 
 $(eval $(generic-package))
