@@ -1,0 +1,102 @@
+api:
+  enabled: true
+
+sources:
+  postgresql:
+    type: file_descriptor
+    fd: ${VEC_SRV_POSTGRESQL_FD}
+    decoding:
+      codec: bytes
+  postgrest:
+    type: file_descriptor
+    fd: ${VEC_SRV_POSTGREST_FD}
+    decoding:
+      codec: bytes
+  storage:
+    type: file_descriptor
+    fd: ${VEC_SRV_STORAGE_FD}
+    decoding:
+      codec: bytes
+  pgmeta:
+    type: file_descriptor
+    fd: ${VEC_SRV_PGMETA_FD}
+    decoding:
+      codec: bytes
+  pgexporter:
+    type: file_descriptor
+    fd: ${VEC_SRV_PGEXPORTER_FD}
+    decoding:
+      codec: bytes
+  pgbouncer:
+    type: file_descriptor
+    fd: ${VEC_SRV_PGBOUNCER_FD}
+    decoding:
+      codec: bytes
+
+transforms:
+  postgresql_logs:
+    type: remap
+    inputs:
+      - postgresql
+    source: |-
+      .metadata.host = "db-default"
+      .metadata.parsed.timestamp = .timestamp
+      parsed, err = parse_regex(.event_message, r'.*(?P<level>INFO|NOTICE|WARNING|ERROR|LOG|FATAL|PANIC?):.*', numeric_groups: false)
+      if err != null || parsed == null {
+        .metadata.level = "info"
+      }
+      if parsed != null {
+       .metadata.level = parsed.level
+      }
+      if .metadata.level == "info" {
+          .metadata.level = "log"
+      }
+  postgrest_logs:
+    type: remap
+    inputs:
+      - postgrest
+    source: |-
+      parsed, err = parse_regex(.event_message, r'^(?P<time>.*): (?P<msg>.*)$')
+      if err == null {
+          .event_message = parsed.msg
+          .timestamp = parse_timestamp!(parsed.time, format: "%v %R %:z")
+      }
+
+sinks:
+  postgresql_sink:
+    type: 'loki'
+    inputs:
+      - postgresql_logs
+    endpoint: 'http://loki.loki.svc.cluster.local:3100'
+    labels:
+      branch_id: '${VELA_BRANCH?VELA_BRANCH is required}'
+      level: '{{ .metadata.level }}'
+      appname: 'postgres'
+    encoding:
+      codec: json
+  loki:
+    type: 'loki'
+    inputs:
+      - postgrest_logs
+    endpoint: 'http://loki.loki.svc.cluster.local:3100'
+    labels:
+      branch_id: '${VELA_BRANCH?VELA_BRANCH is required}'
+      level: '{{ .metadata.parsed.error_severity }}'
+      appname: '{{ .appname }}'
+      status: '{{ .metadata.response.status_code }}'
+      method: '{{ .metadata.request.method }}'
+      path: '{{ .metadata.request.path }}'
+    encoding:
+      codec: json
+  loki-all:
+    type: 'loki'
+    inputs:
+      - storage
+      - pgmeta
+      - pgexporter
+      - pgbouncer
+    endpoint: 'http://loki.loki.svc.cluster.local:3100'
+    labels:
+      branch_id: '${VELA_BRANCH?VELA_BRANCH is required}'
+    encoding:
+      codec: json
