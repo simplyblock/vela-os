@@ -25,6 +25,7 @@ load_fifo_to_fd() {
   fd=$(find_free_fd 10)
   eval "exec $fd<>\"$fifo\""
   eval "export $variable=$fd"
+  echo "Mapped $variable to file descriptor: $fd"
 }
 
 load_fifo_to_fd "/tmp/service-postgrest.fifo" "VEC_SRV_POSTGREST_FD"
