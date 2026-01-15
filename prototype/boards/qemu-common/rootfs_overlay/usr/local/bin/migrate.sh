@@ -1,49 +1,27 @@
 #!/bin/sh
-set -eu
+set -euo pipefail
 
-#######################################
-# Used by both ami and docker builds to initialise database schema.
-# Env vars:
-#   POSTGRES_DB        defaults to postgres
-#   POSTGRES_HOST      defaults to localhost
-#   POSTGRES_PORT      defaults to 5432
-#   POSTGRES_PASSWORD  defaults to ""
-# Exit code:
-#   0 if migration succeeds, non-zero on error.
-#######################################
+PGPASSWORD="$(cat /vela/secrets/db/password)"
 
-export PGDATABASE="${POSTGRES_DB:-postgres}"
-export PGHOST="${POSTGRES_HOST:-localhost}"
-export PGPORT="${POSTGRES_PORT:-5432}"
-export PGPASSWORD="$(cat /vela/secrets/db/password)"
+# Ensure `_vela` schema exists for migrations table
+psql -v ON_ERROR_STOP=1 -U vela -d postgres -c "
+  CREATE SCHEMA IF NOT EXISTS _vela;
+  REVOKE CREATE ON SCHEMA _vela FROM PUBLIC;
+"
 
-connect="$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE?sslmode=disable"
+dbmate \
+    --url "postgres://vela@localhost:5432/postgres?sslmode=disable" \
+    --migrations-dir "/vela/migrations/" \
+    --migrations-table "_vela.schema_migrations" \
+    --no-dump-schema up
 
-db="/vela/migrations"
-# create postgres user if non existing
-psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U vela -c "CREATE USER postgres WITH PASSWORD '$PGPASSWORD'" || true
-# run init scripts as postgres user
-for sql in "$db"/init-scripts/*.sql; do
-    [ -f "$sql" ] || continue
-    echo "$0: running $sql"
-    psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U vela -f "$sql"
-done
-psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U vela -c "ALTER USER supabase_admin WITH PASSWORD '$PGPASSWORD'"
-# run migrations as super user - postgres user demoted in post-setup
-for sql in "$db"/migrations/*.sql; do
-    [ -f "$sql" ] || continue
-    echo "$0: running $sql"
-    psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U supabase_admin -f "$sql"
-done
-
-# run any post migration script to update role passwords
-#postinit="/etc/postgresql.schema.sql"
-#if [ -e "$postinit" ]; then
-#    echo "$0: running $postinit"
-#    psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U supabase_admin -f "$postinit"
-#fi
+psql -v ON_ERROR_STOP=1 -U vela -d postgres -c "
+  ALTER USER postgres WITH PASSWORD '$PGPASSWORD'
+  ALTER USER supabase_admin WITH PASSWORD '$PGPASSWORD'
+"
 
 # once done with everything, reset stats from init
-psql -v ON_ERROR_STOP=1 --no-password --no-psqlrc -U supabase_admin -c 'SELECT extensions.pg_stat_statements_reset(); SELECT pg_stat_reset();' || true
+psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres -c 'SELECT extensions.pg_stat_statements_reset(); SELECT pg_stat_reset();' || true
 
 touch /var/run/postgresql/.migration.done
+
