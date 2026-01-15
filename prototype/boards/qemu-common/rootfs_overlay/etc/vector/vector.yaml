@@ -41,7 +41,7 @@ transforms:
     source: |-
       .metadata.host = "db-default"
       .metadata.parsed.timestamp = .timestamp
-      parsed, err = parse_regex(.event_message, r'.*(?P<level>INFO|NOTICE|WARNING|ERROR|LOG|FATAL|PANIC?):.*', numeric_groups: false)
+      parsed, err = parse_regex(.message, r'.*(?P<level>INFO|NOTICE|WARNING|ERROR|LOG|FATAL|PANIC?):.*', numeric_groups: false)
       if err != null || parsed == null {
         .metadata.level = "info"
       }
@@ -49,32 +49,97 @@ transforms:
        .metadata.level = parsed.level
       }
       if .metadata.level == "info" {
-          .metadata.level = "log"
+        .metadata.level = "log"
       }
+      .appname = "vela-db"
   postgrest_logs:
     type: remap
     inputs:
       - postgrest
     source: |-
-      parsed, err = parse_regex(.event_message, r'^(?P<time>.*): (?P<msg>.*)$')
-      if err == null {
-          .event_message = parsed.msg
-          .timestamp = parse_timestamp!(parsed.time, format: "%v %R %:z")
+      parsed, err = parse_regex(.message, r'^(?P<time>.*): (?P<msg>.*)$')
+      if err == null && parsed != null {
+        .message = parsed.msg
+        .timestamp = parse_timestamp!(parsed.time, format: "%d/%b/%Y:%H:%M:%S %z")
+      }
+      .appname = "vela-rest"
+  pgmeta_logs:
+    type: remap
+    inputs:
+      - pgmeta
+    source: |-
+      .appname = "vela-meta"
+      parsed, err = parse_json(.message)
+      if err == null && parsed != null {
+        .metadata.level = parsed.level
+        .metadata.hostname = parsed.hostname
+        .message = parsed.msg
+        ts, ts_err = parse_timestamp(.time, format: "%+")
+        if ts_err == null {
+          .timestamp = ts
+        } else {
+          .timestamp = now()
+        }
+      }
+  pgbouncer_logs:
+    type: remap
+    inputs:
+      - pgbouncer
+    source: |-
+      .appname = "pgbouncer"
+      parsed, err = parse_regex(.message, r'^(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) UTC \[(?P<pid>\d+)\] (?P<level>[A-Z]+) (?P<msg>.*)$')
+      if err == null && parsed != null {
+        .metadata.level = parsed.level
+        .message = parsed.msg
+        ts, ts_err = parse_timestamp(parsed.time, format: "%F %T%.3f %Z", timezone: "UTC")
+        if ts_err == null {
+          .timestamp = ts
+        } else {
+          .timestamp = now()
+        }
+      } else {
+        .message = "failed parsing: pgbouncer"
+      }
+  pgexporter_logs:
+    type: remap
+    inputs:
+      - pgexporter
+    source: |-
+      .appname = "postgres_exporter"
+      parsed, err = parse_key_value(.message)
+      if err == null && parsed != null {
+        .message = parsed.msg
+        if exists(parsed.err) {
+          .message = parsed.err
+        }
+        if exists(parsed.level) {
+          .metadata.level = upcase!(parsed.level)
+        }
+        if exists(parsed.time) {
+          ts, ts_err = parse_timestamp(.time, format: "%+")
+          if ts_err == null {
+            .timestamp = ts
+          }
+        }
       }
 
 sinks:
-  postgresql_sink:
+  basic_sink:
     type: 'loki'
     inputs:
       - postgresql_logs
+      - pgmeta_logs
+      - pgbouncer_logs
+      - pgexporter_logs
     endpoint: 'http://loki.loki.svc.cluster.local:3100'
     labels:
       branch_id: '${VELA_BRANCH?VELA_BRANCH is required}'
       level: '{{ .metadata.level }}'
-      appname: 'postgres'
+      appname: '{{ .appname }}'
+      service: '{{ .appname }}'
     encoding:
       codec: json
-  loki:
+  http_sink:
     type: 'loki'
     inputs:
       - postgrest_logs
@@ -83,20 +148,21 @@ sinks:
       branch_id: '${VELA_BRANCH?VELA_BRANCH is required}'
       level: '{{ .metadata.parsed.error_severity }}'
       appname: '{{ .appname }}'
+      service: '{{ .appname }}'
       status: '{{ .metadata.response.status_code }}'
       method: '{{ .metadata.request.method }}'
       path: '{{ .metadata.request.path }}'
     encoding:
       codec: json
-  loki-all:
+  catch_all_sink:
     type: 'loki'
     inputs:
       - storage
-      - pgmeta
-      - pgexporter
-      - pgbouncer
     endpoint: 'http://loki.loki.svc.cluster.local:3100'
     labels:
       branch_id: '${VELA_BRANCH?VELA_BRANCH is required}'
+      appname: '{{ .source_fd }}'
+      service: '{{ .source_fd }}'
+      level: 'INFO'
     encoding:
       codec: json

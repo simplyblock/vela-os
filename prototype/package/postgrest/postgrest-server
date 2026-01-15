@@ -6,4 +6,4 @@ PGRST_DB_USE_LEGACY_GUCS="false" \
 PGRST_APP_SETTINGS_JWT_EXP="3600" \
 PGRST_JWT_SECRET="$(cat /vela/secrets/jwt/secret)" \
 PGRST_APP_SETTINGS_JWT_SECRET="$(cat /vela/secrets/jwt/secret)" \
-/usr/sbin/postgrest
+/usr/sbin/postgrest 2>&1 | tee /tmp/service-postgrest.fifo

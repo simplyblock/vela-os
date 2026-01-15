@@ -37,4 +37,4 @@ load_fifo_to_fd "/tmp/service-postgresql.fifo" "VEC_SRV_POSTGRESQL_FD"
 
 export VELA_BRANCH="$(cat /vela/secrets/analytics/branch | awk '{print toupper($0)}')"
 
-/sbin/vector -c /etc/vector/vector.yaml --color never
+/sbin/vector -c /etc/vector/vector.yaml --color never > /tmp/neon-logs.fifo
