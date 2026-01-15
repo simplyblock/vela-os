@@ -1,0 +1,16 @@
+[Unit]
+Description=Debug Info
+After=sshd.service
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/sh -c 'echo "=== Network Debug Start ==="; ip addr; ip route; cat /etc/resolv.conf 2>&1 || echo "No resolv.conf"; networkctl status 2>&1 || echo "networkctl not available"; echo "=== Network Debug End ==="'
+ExecStart=/bin/sh -c 'echo "=== SSH Keys Debug ==="; ls -la /mnt/ssh/ || echo "Mount failed"; cat /mnt/ssh/authorized_keys || echo "No authorized_keys"; echo "=== End SSH Keys Debug ==="'
+ExecStart=/bin/sh -c 'echo "=== SSH Config Debug ==="; echo "--- Main sshd_config ---"; cat /etc/ssh/sshd_config; echo "--- sshd_config.d directory ---"; ls -la /etc/ssh/sshd_config.d/ 2>&1 || echo "Dir does not exist"; echo "--- Drop-in files content ---"; find /etc/ssh/sshd_config.d/ -name "*.conf" -exec echo "File: {}" \; -exec cat {} \; 2>&1 || echo "No drop-in files"; echo "--- sshd test config ---"; /usr/sbin/sshd -t -f /etc/ssh/sshd_config 2>&1 || echo "Config test failed"; echo "--- sshd extended test ---"; /usr/sbin/sshd -T 2>&1 | grep -i "authorizedkeysfile\|loglevel" || echo "Cannot dump config"; echo "=== End SSH Config Debug ==="'
+ExecStart=/bin/sh -c 'echo "=== SSH Service Debug ==="; echo "--- sshd.service unit file ---"; cat /usr/lib/systemd/system/sshd.service 2>&1 || cat /lib/systemd/system/sshd.service 2>&1 || echo "Cannot find unit"; echo "--- sshd.service drop-ins ---"; systemctl cat sshd.service 2>&1 || echo "Cannot cat service"; echo "--- sshd process ---"; ps aux | grep sshd || echo "sshd not running"; echo "=== End SSH Service Debug ==="'
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target
