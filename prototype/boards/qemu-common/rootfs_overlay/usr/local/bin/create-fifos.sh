@@ -10,3 +10,4 @@ rm -rf /tmp/service-pgmeta.fifo; mkfifo -m 0666 /tmp/service-pgmeta.fifo
 rm -rf /tmp/service-pgexporter.fifo; mkfifo -m 0666 /tmp/service-pgexporter.fifo
 rm -rf /tmp/service-pgbouncer.fifo; mkfifo -m 0666 /tmp/service-pgbouncer.fifo
 rm -rf /tmp/service-postgresql.fifo; mkfifo -m 0666 /tmp/service-postgresql.fifo
+rm -rf /tmp/service-storage.fifo; mkfifo -m 0666 /tmp/service-storage.fifo
