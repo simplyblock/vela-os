@@ -14,21 +14,21 @@ SB_STORAGE_TARGET_ARCH = amd64
 endif
 
 define SB_STORAGE_BUILD_CMDS
-	cd $(@D) && \
-	$(NPM) clean-install && \
-	$(NPM) run build && \
-	$(NPM) prune --omit=dev --omit=optional && \
-	$(NPM) exec -- modclean -r --patterns="default:*"
+    cd $(@D) && \
+    $(NPM) clean-install && \
+    $(NPM) run build && \
+    $(NPM) prune --omit=dev --omit=optional && \
+    $(NPM) exec -- modclean -r --patterns="default:*"
 endef
 
 define SB_STORAGE_INSTALL_TARGET_CMDS
-	@mkdir -p $(TARGET_DIR)/opt/storage
-	@mkdir -p $(TARGET_DIR)/opt/storage/node_modules
-	@mkdir -p $(TARGET_DIR)/opt/storage/dist
-	@cp -r $(@D)/node_modules/* $(TARGET_DIR)/opt/storage/node_modules/
-	@cp -r $(@D)/dist/* $(TARGET_DIR)/opt/storage/dist/
-	$(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/storage/package.json
-	@echo -e "#!/bin/sh\ncd /opt/storage\n/usr/bin/node dist/start/server.js\n" > $(TARGET_DIR)/opt/storage/server
+    @mkdir -p $(TARGET_DIR)/opt/storage
+    @mkdir -p $(TARGET_DIR)/opt/storage/node_modules
+    @mkdir -p $(TARGET_DIR)/opt/storage/dist
+    @cp -r $(@D)/migrations $(TARGET_DIR)/opt/storage/
+    @cp -r $(@D)/node_modules/* $(TARGET_DIR)/opt/storage/node_modules/
+    @cp -r $(@D)/dist/* $(TARGET_DIR)/opt/storage/dist/
+    $(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/storage/package.json
     @chmod +x $(TARGET_DIR)/opt/storage/server
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/android*
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/android*
@@ -42,6 +42,7 @@ define SB_STORAGE_INSTALL_TARGET_CMDS
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/win32*
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/win32*
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/win32*
+    $(INSTALL) -m 0755 $(SB_STORAGE_PKGDIR)/sb-storage-server $(TARGET_DIR)/usr/sbin
 endef
 
 define SB_STORAGE_CLEAN_AMD64
@@ -57,9 +58,9 @@ define SB_STORAGE_CLEAN_AARCH64
 endef
 
 ifeq ("$(SB_STORAGE_TARGET_ARCH)", "amd64")
-	SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AMD64
+    SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AMD64
 else
-	SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AARCH64
+    SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AARCH64
 endif
 
 $(eval $(generic-package))
