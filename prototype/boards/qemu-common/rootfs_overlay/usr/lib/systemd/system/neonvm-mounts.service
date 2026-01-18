@@ -1,0 +1,16 @@
+[Unit]
+Description=Setup NeonVM mounts
+DefaultDependencies=no
+After=neonvm-runtime.mount systemd-udev-settle.service
+Requires=neonvm-runtime.mount
+Before=local-fs.target
+# TODO: Ideally instead of the mounts.sh script we'd get proper mount units passed in
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "sed 's!^/neonvm/bin/!!' /neonvm/runtime/mounts.sh > /tmp/mounts.sh"
+ExecStart=/bin/sh /tmp/mounts.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=local-fs.target
