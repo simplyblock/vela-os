@@ -1,9 +1,0 @@
-#!/bin/sh
-while ! test -f /var/run/postgresql/.migration.done; do sleep 1; done
-PGRST_DB_URI="postgres://authenticator@localhost:5432/postgres?sslmode=disable" \
-PGRST_DB_SCHEMAS="public,storage" \
-PGRST_DB_USE_LEGACY_GUCS="false" \
-PGRST_APP_SETTINGS_JWT_EXP="3600" \
-PGRST_JWT_SECRET="$(cat /vela/secrets/jwt/secret)" \
-PGRST_APP_SETTINGS_JWT_SECRET="$(cat /vela/secrets/jwt/secret)" \
-/usr/sbin/postgrest 2>&1 | tee /tmp/service-postgrest.fifo
