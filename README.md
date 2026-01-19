@@ -2,7 +2,7 @@
 
 <p align="center">
     <a href="https://vela.simplyblock.io">
-<img src="https://raw.githubusercontent.com/simplyblock/vela-studio/main/img/vela-logo-white.png" alt="Vela Logo" width="250" height="100">
+<img src="https://raw.githubusercontent.com/simplyblock/vela/main/img/vela-logo-white.png" alt="Vela Logo" width="250" height="100">
         </a>
 </p>
 
@@ -10,7 +10,7 @@
 
 **Vela OS** is the operating system which runs the Vela branch services inside the Neon Autoscaling VM. 
 
-The Vela main repository is [here](https://github.com/simplyblock/vela-studio).
+The Vela main repository is [here](https://github.com/simplyblock/vela).
 
 ---
 
@@ -120,9 +120,9 @@ Find help, explore resources, or get involved with the Vela community.
 
 ### Support & Contributions
 
-- [Open an Issue](https://github.com/simplyblock/vela-studio/issues) – Report bugs or suggest improvements
-- [Start a Discussion](https://github.com/simplyblock/vela-studio/discussions) – Share feedback and feature ideas, ask questions, share ideas, and connect with other users
-- [Contribute Code](https://github.com/simplyblock/vela-studio/pulls) – Submit pull requests following our contribution guidelines
+- [Open an Issue](https://github.com/simplyblock/vela/issues) – Report bugs or suggest improvements
+- [Start a Discussion](https://github.com/simplyblock/vela/discussions) – Share feedback and feature ideas, ask questions, share ideas, and connect with other users
+- [Contribute Code](https://github.com/simplyblock/vela/pulls) – Submit pull requests following our contribution guidelines
 
 We welcome contributions of all kinds — from documentation improvements and bug fixes to new features and integrations.
 
