@@ -53,4 +53,9 @@ define NEONVMD_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/neonvmd $(TARGET_DIR)/neonvm/bin/neonvmd
 endef
 
+define NEONVMD_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 644 $(NEONVMD_PKGDIR)/neonvmd.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/neonvmd.service
+endef
+
 $(eval $(generic-package))
