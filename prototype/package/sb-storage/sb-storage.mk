@@ -29,7 +29,6 @@ define SB_STORAGE_INSTALL_TARGET_CMDS
     @cp -r $(@D)/node_modules/* $(TARGET_DIR)/opt/storage/node_modules/
     @cp -r $(@D)/dist/* $(TARGET_DIR)/opt/storage/dist/
     $(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/storage/package.json
-    @chmod +x $(TARGET_DIR)/opt/storage/server
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/android*
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/android*
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/android*
