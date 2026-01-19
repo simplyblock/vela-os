@@ -23,7 +23,15 @@ endef
 
 define PGBOUNCER_INSTALL_TARGET_CMDS
 	$(INSTALL) $(@D)/pgbouncer $(TARGET_DIR)/usr/sbin/pgbouncer
-	$(INSTALL) -m 0755 $(PGBOUNCER_PKGDIR)/pgbouncer-server $(TARGET_DIR)/usr/sbin
+endef
+
+define PGBOUNCER_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 644 $(PGBOUNCER_PKGDIR)/pgbouncer.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/pgbouncer.service
+endef
+
+define PGBOUNCER_USERS
+	pgbouncer -1 pgbouncer -1 * - - - pgbouncer
 endef
 
 $(eval $(generic-package))
