@@ -16,13 +16,10 @@
 
 ::sysinit:su -p root -c 'ulimit -c unlimited; /usr/sbin/cgconfigparser -l /etc/cgconfig.conf -s 1664'
 
-::sysinit:su -p root -c 'ulimit -c unlimited; /usr/local/bin/postgres-init.sh'
-
 ::respawn:su -p vm-monitor -c 'ulimit -c unlimited; RUST_LOG=info /usr/bin/vm-monitor --cgroup=vela --addr="0.0.0.0:10301"'
 
 ::respawn:su -p root -c 'ulimit -c unlimited; cat /tmp/neon-logs.fifo > /dev/virtio-ports/tech.neon.log.0'
 
-::once:su -p postgres -c '/usr/local/bin/postgres-startup.sh'
 ::once:su -p postgres -c 'ulimit -c unlimited; while ! pg_isready -U vela -d postgres; do sleep 1; done && /usr/local/bin/migrate.sh'
 ::respawn:su -p root -c '/opt/meta/server'
 ::respawn:su -p postgres -c '/usr/sbin/pgbouncer-server'
