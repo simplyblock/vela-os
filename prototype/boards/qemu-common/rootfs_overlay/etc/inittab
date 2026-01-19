@@ -16,8 +16,6 @@
 
 ::sysinit:su -p root -c 'ulimit -c unlimited; /usr/sbin/cgconfigparser -l /etc/cgconfig.conf -s 1664'
 
-::respawn:su -p vm-monitor -c 'ulimit -c unlimited; RUST_LOG=info /usr/bin/vm-monitor --cgroup=vela --addr="0.0.0.0:10301"'
-
 ::respawn:su -p root -c 'ulimit -c unlimited; cat /tmp/neon-logs.fifo > /dev/virtio-ports/tech.neon.log.0'
 
 ::respawn:su -p root -c '/usr/sbin/pgbouncer-exporter-server'
