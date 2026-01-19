@@ -41,10 +41,9 @@ transforms:
     source: |-
       .appname = "vela-db"
       .message_id = uuid_v7()
-      .timestamp = .timestamp
-      parsed, err = parse_regex(.message, r'.*(?P<level>INFO|NOTICE|WARNING|ERROR|LOG|FATAL|PANIC?):.*', numeric_groups: false)
       .level = "INFO"
-      if parsed != null {
+      parsed, err = parse_regex(.message, r'.*(?P<level>INFO|NOTICE|WARNING|ERROR|LOG|FATAL|PANIC?):.*', numeric_groups: false)
+      if err == null && parsed != null {
        .level = upcase!(parsed.level)
       }
   postgrest_logs:
@@ -54,6 +53,7 @@ transforms:
     source: |-
       .appname = "vela-rest"
       .message_id = uuid_v7()
+      .level = "INFO"
       parsed, err = parse_regex(.message, r'^(?P<time>.*): (?P<msg>.*)$')
       if err == null && parsed != null {
         .message = parsed.msg
@@ -94,11 +94,7 @@ transforms:
         ts, ts_err = parse_timestamp(parsed.time, format: "%F %T%.3f %Z", timezone: "UTC")
         if ts_err == null {
           .timestamp = ts
-        } else {
-          .timestamp = now()
         }
-      } else {
-        .message = "failed parsing: pgbouncer"
       }
   pgexporter_logs:
     type: remap
@@ -131,6 +127,47 @@ transforms:
     source: |-
       .appname = "vela-storage"
       .message_id = uuid_v7()
+      parsed, err = parse_json(.message)
+      if err == null || parsed != null {
+        if exists(parsed.level) {
+          lvl, lvl_err = to_int(parsed.level)
+          if lvl_err == null {
+            if lvl >= 50 {
+              .level = "ERROR"
+            } else if lvl >= 40 {
+              .level = "WARN"
+            } else if lvl >= 30 {
+              .level = "INFO"
+            } else if lvl >= 20 {
+              .level = "DEBUG"
+            } else if lvl >= 10 {
+              .level = "TRACE"
+            } else {
+              .level = "INFO"
+            }
+          }
+        }
+        if exists(parsed.msg) {
+          .message = parsed.msg
+        }
+        if exists(parsed.time) {
+          ts, ts_err = parse_timestamp(parsed.time, format: "%+")
+          if ts_err == null {
+            .timestamp = ts
+          }
+        }
+        if exists(parsed.error) && is_object(parsed.error) {
+          if exists(parsed.error.message) {
+            .error_message = parsed.error.message
+          }
+          if exists(parsed.error.name) {
+            .error_name = parsed.error.name
+          }
+          if exists(parsed.error.statusCode) {
+            .error_status_code = parsed.error.statusCode
+          }
+        }
+      }
 
 sinks:
   basic_sink:
