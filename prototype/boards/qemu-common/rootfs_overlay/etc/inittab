@@ -20,7 +20,6 @@
 
 ::respawn:su -p root -c 'ulimit -c unlimited; cat /tmp/neon-logs.fifo > /dev/virtio-ports/tech.neon.log.0'
 
-::respawn:su -p root -c '/usr/sbin/postgrest-server'
 ::respawn:su -p root -c '/usr/sbin/postgres-exporter-server'
 ::respawn:su -p root -c '/usr/sbin/pgbouncer-exporter-server'
 ::respawn:su -p root -c '/usr/sbin/sb-storage-server'
