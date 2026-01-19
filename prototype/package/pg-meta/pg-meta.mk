@@ -28,8 +28,6 @@ define PG_META_INSTALL_TARGET_CMDS
 	@cp -r $(@D)/node_modules/* $(TARGET_DIR)/opt/meta/node_modules/
 	@cp -r $(@D)/dist/* $(TARGET_DIR)/opt/meta/dist/
 	$(INSTALL) -D -m 0755 $(@D)/package.json $(TARGET_DIR)/opt/meta/package.json
-	$(INSTALL) -m 0755 $(PG_META_PKGDIR)/server $(TARGET_DIR)/opt/meta
-    @chmod +x $(TARGET_DIR)/opt/meta/server
     @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-darwin*
     @rm -rf $(TARGET_DIR)/opt/meta/node_modules/@sentry-internal/node-cpu-profiler/lib/sentry_cpu_profiler-win32*
 endef
@@ -49,5 +47,14 @@ ifeq ("$(PG_META_TARGET_ARCH)", "amd64")
 else
 	PG_META_POST_INSTALL_TARGET_HOOKS+=PG_META_CLEAN_AARCH64
 endif
+
+define PG_META_USERS
+	postgres-meta -1 postgres-meta -1 * - - - Postgres meta
+endef
+
+define PG_META_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 644 $(PG_META_PKGDIR)/postgres-meta.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/postgres-meta.service
+endef
 
 $(eval $(generic-package))
