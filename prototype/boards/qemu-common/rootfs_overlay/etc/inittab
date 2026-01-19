@@ -20,7 +20,6 @@
 
 ::respawn:su -p root -c 'ulimit -c unlimited; cat /tmp/neon-logs.fifo > /dev/virtio-ports/tech.neon.log.0'
 
-::once:su -p postgres -c 'ulimit -c unlimited; while ! pg_isready -U vela -d postgres; do sleep 1; done && /usr/local/bin/migrate.sh'
 ::respawn:su -p root -c '/opt/meta/server'
 ::respawn:su -p postgres -c '/usr/sbin/pgbouncer-server'
 ::respawn:su -p root -c '/usr/sbin/postgrest-server'
