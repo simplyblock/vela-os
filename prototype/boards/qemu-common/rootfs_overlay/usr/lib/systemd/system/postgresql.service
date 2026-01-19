@@ -1,0 +1,32 @@
+[Unit]
+Description=PostgreSQL database server
+After=network.target
+
+[Service]
+Type=notify
+
+# start timeout disabled because initdb may run a little
+# longer (eg. 5 minutes on RaspberryPi)
+TimeoutStartSec=0
+
+User=postgres
+Group=postgres
+
+RuntimeDirectory=postgresql
+RuntimeDirectoryMode=0755
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=postgres
+
+Environment="PGDATA=/var/lib/pgsql/data"
+
+ExecStartPre=/bin/sh -c "if [ ! -f ${PGDATA}/PG_VERSION ]; then /usr/bin/pg_ctl initdb --options=\"--username=vela\"; fi"
+ExecStart=/usr/bin/postgres -c config_file=/vela/config/postgresql.conf -c hba_file=/vela/config/pg_hba.conf
+ExecReload=/usr/bin/kill -HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGINT
+TimeoutSec=0
+
+[Install]
+WantedBy=multi-user.target
