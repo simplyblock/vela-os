@@ -9,7 +9,15 @@ endef
 
 define POSTGRES_EXPORTER_INSTALL_TARGET_CMDS
 	$(INSTALL) $(@D)/postgres_exporter $(TARGET_DIR)/usr/sbin
-	$(INSTALL) -m 0755 $(POSTGRES_EXPORTER_PKGDIR)/postgres-exporter-server $(TARGET_DIR)/usr/sbin
+endef
+
+define POSTGRES_EXPORTER_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 644 $(POSTGRES_EXPORTER_PKGDIR)/postgres-exporter.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/postgres-exporter.service
+endef
+
+define POSTGRES_EXPORTER_USERS
+	postgres-exporter -1 postgres-exporter -1 * - - - postgres-exporter
 endef
 
 $(eval $(generic-package))
