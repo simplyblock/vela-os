@@ -8,7 +8,6 @@
 ::respawn:/neonvm/bin/acpid -f -c /neonvm/acpi
 ::respawn:/neonvm/bin/chronyd -n -f /neonvm/config/chrony.conf -l /var/log/chrony/chrony.log
 ::respawn:/neonvm/bin/sshd -E /var/log/ssh.log -f /neonvm/config/sshd_config
-::respawn:/neonvm/bin/neonvmd --addr=0.0.0.0:25183
 ::respawn:/neonvm/bin/vmstart
 
 ::wait:su -p root -c 'ulimit -c unlimited; /usr/local/bin/create-fifos.sh > /dev/virtio-ports/tech.neon.log.0'
