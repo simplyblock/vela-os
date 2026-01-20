@@ -46,6 +46,13 @@ transforms:
       if err == null && parsed != null {
        .level = upcase!(parsed.level)
       }
+      if .level == "PANIC" || .level == "FATAL" || .level == "ERROR" {
+        .severity = "error"
+      } else if .level == "WARNING" {
+        .severity = "warning"
+      } else {
+        .severity = "success"
+      }
   postgrest_logs:
     type: remap
     inputs:
@@ -54,6 +61,7 @@ transforms:
       .appname = "vela-rest"
       .message_id = uuid_v7()
       .level = "INFO"
+      .severity = "success"
       parsed, err = parse_regex(.message, r'^(?P<time>.*): (?P<msg>.*)$')
       if err == null && parsed != null {
         .message = parsed.msg
@@ -79,6 +87,13 @@ transforms:
           .timestamp = now()
         }
       }
+      if .level == "ERROR" || .level == "FATAL" {
+        .severity = "error"
+      } else if .level == "WARN" {
+        .severity = "warning"
+      } else {
+        .severity = "success"
+      }
   pgbouncer_logs:
     type: remap
     inputs:
@@ -95,6 +110,13 @@ transforms:
         if ts_err == null {
           .timestamp = ts
         }
+      }
+      if .level == "ERROR" || .level == "FATAL" {
+        .severity = "error"
+      } else if .level == "WARN" {
+        .severity = "warning"
+      } else {
+        .severity = "success"
       }
   pgexporter_logs:
     type: remap
@@ -120,6 +142,13 @@ transforms:
           }
         }
       }
+      if .level == "ERROR" || .level == "FATAL" {
+        .severity = "error"
+      } else if .level == "WARN" {
+        .severity = "warning"
+      } else {
+        .severity = "success"
+      }
   storage_logs:
     type: remap
     inputs:
@@ -128,7 +157,7 @@ transforms:
       .appname = "vela-storage"
       .message_id = uuid_v7()
       parsed, err = parse_json(.message)
-      if err == null || parsed != null {
+      if err == null && parsed != null {
         if exists(parsed.level) {
           lvl, lvl_err = to_int(parsed.level)
           if lvl_err == null {
@@ -167,6 +196,13 @@ transforms:
             .error_status_code = parsed.error.statusCode
           }
         }
+      }
+      if .level == "ERROR" {
+        .severity = "error"
+      } else if .level == "WARN" {
+        .severity = "warning"
+      } else {
+        .severity = "success"
       }
 
 sinks:
