@@ -1,5 +1,5 @@
 #!/bin/sh
-while ! pg_isready; do sleep 1; done
+while ! pg_isready -U vela; do sleep 1; done
 
 . /neonvm/runtime/env.sh
 
