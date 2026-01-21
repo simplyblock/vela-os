@@ -50,7 +50,6 @@ endef
 
 define NEONVMD_INSTALL_TARGET_CMDS
 	mkdir -p $(TARGET_DIR)/neonvm/bin
-	ln -sf /sbin/resize2fs $(TARGET_DIR)/neonvm/bin/resize2fs
 	$(INSTALL) -D -m 0755 $(@D)/neonvmd $(TARGET_DIR)/neonvm/bin/neonvmd
 endef
 
