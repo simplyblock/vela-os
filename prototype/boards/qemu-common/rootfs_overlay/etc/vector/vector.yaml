@@ -39,7 +39,7 @@ transforms:
     inputs:
       - postgresql
     source: |-
-      .appname = "vela-db"
+      .appname = "postgres"
       .message_id = uuid_v7()
       .level = "INFO"
       parsed, err = parse_regex(.message, r'.*(?P<level>INFO|NOTICE|WARNING|ERROR|LOG|FATAL|PANIC?):.*', numeric_groups: false)
@@ -58,7 +58,7 @@ transforms:
     inputs:
       - postgrest
     source: |-
-      .appname = "vela-rest"
+      .appname = "postgrest"
       .message_id = uuid_v7()
       .level = "INFO"
       .severity = "success"
@@ -72,7 +72,7 @@ transforms:
     inputs:
       - pgmeta
     source: |-
-      .appname = "vela-meta"
+      .appname = "pgmeta"
       .message_id = uuid_v7()
       .level = "LOG"
       parsed, err = parse_json(.message)
@@ -123,7 +123,7 @@ transforms:
     inputs:
       - pgexporter
     source: |-
-      .appname = "postgres_exporter"
+      .appname = "pgexporter"
       .message_id = uuid_v7()
       .level = "INFO"
       parsed, err = parse_key_value(.message)
@@ -154,7 +154,7 @@ transforms:
     inputs:
       - storage
     source: |-
-      .appname = "vela-storage"
+      .appname = "storage"
       .message_id = uuid_v7()
       parsed, err = parse_json(.message)
       if err == null && parsed != null {
