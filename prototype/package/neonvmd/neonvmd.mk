@@ -1,6 +1,6 @@
-NEONVMD_VERSION = 0.49.1
+NEONVMD_VERSION = 0.2.0
 NEONVMD_SOURCE = v$(NEONVMD_VERSION).tar.gz
-NEONVMD_SITE = https://github.com/neondatabase/autoscaling/archive/refs/tags
+NEONVMD_SITE = https://github.com/simplyblock/autoscaling/archive/refs/tags
 NEONVMD_LICENSE = Apache2.0
 NEONVMD_DEPENDENCIES = host-go
 
