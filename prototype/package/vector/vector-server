@@ -32,6 +32,7 @@ load_fifo_to_fd "/tmp/service-postgrest.fifo" "VEC_SRV_POSTGREST_FD"
 load_fifo_to_fd "/tmp/service-storage.fifo" "VEC_SRV_STORAGE_FD"
 load_fifo_to_fd "/tmp/service-pgmeta.fifo" "VEC_SRV_PGMETA_FD"
 load_fifo_to_fd "/tmp/service-pgexporter.fifo" "VEC_SRV_PGEXPORTER_FD"
+load_fifo_to_fd "/tmp/service-pgbouncer-exporter.fifo" "VEC_SRV_PGBOUNCER_EXPORTER_FD"
 load_fifo_to_fd "/tmp/service-pgbouncer.fifo" "VEC_SRV_PGBOUNCER_FD"
 load_fifo_to_fd "/tmp/service-postgresql.fifo" "VEC_SRV_POSTGRESQL_FD"
 
