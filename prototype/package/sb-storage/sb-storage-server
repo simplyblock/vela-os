@@ -1,9 +1,11 @@
 #!/bin/sh
 while ! pg_isready -U vela; do sleep 1; done
 
-. /neonvm/runtime/env.sh
+if [ -f /neonvm/runtime/env.sh ]; then
+        . /neonvm/runtime/env.sh
+fi
 
-if [ -n "${ENABLE_STORAGE}"]; then
+if [ -n "${ENABLE_STORAGE}" ]; then
         while true; do sleep 1d; done
 else
         cd /opt/storage
