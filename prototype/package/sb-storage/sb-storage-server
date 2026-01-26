@@ -1,16 +1,16 @@
 #!/bin/sh
-while !pg_isready -U vela -d postgres; do sleep 1; done
+while ! pg_isready -U vela -d postgres; do sleep 1; done
 
 if [ -f /neonvm/runtime/env.sh ]; then
         . /neonvm/runtime/env.sh
 fi
 
 if [ -n "${ENABLE_STORAGE}" ]; then
-        while true; do sleep 1d; done
-else
         cd /opt/storage
         PGRST_JWT_SECRET=$(cat /vela/secrets/jwt/secret) \
         DATABASE_URL=postgresql://supabase_storage_admin@127.0.0.1/postgres \
         FILE_STORAGE_BACKEND_PATH=/mnt/storage \
         node dist/start/server.js 2>&1 | tee /tmp/service-storage.fifo
+else
+        while true; do sleep 1d; done
 fi
