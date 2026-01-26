@@ -217,7 +217,6 @@ sinks:
     endpoint: 'http://loki.loki.svc.cluster.local:3100'
     labels:
       branch_id: '${VELA_BRANCH?VELA_BRANCH is required}'
-      message_id: '{{ .message_id }}'
       level: '{{ .level }}'
       severity: '{{ .severity }}'
       appname: '{{ .appname }}'
@@ -231,7 +230,6 @@ sinks:
     endpoint: 'http://loki.loki.svc.cluster.local:3100'
     labels:
       branch_id: '${VELA_BRANCH?VELA_BRANCH is required}'
-      message_id: '{{ .message_id }}'
       level: '{{ .level }}'
       severity: '{{ .severity }}'
       appname: '{{ .appname }}'
