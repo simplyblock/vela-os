@@ -1,4 +1,4 @@
 #!/bin/sh
-while ! pg_isready -U vela; do sleep 1; done
+while ! pg_isready -U vela -d postgres; do sleep 1; done
 DATA_SOURCE_NAME="postgresql://supabase_admin@localhost:5432/postgres?sslmode=disable" \
 /usr/sbin/postgres_exporter 2>&1 | tee /tmp/service-pgexporter.fifo

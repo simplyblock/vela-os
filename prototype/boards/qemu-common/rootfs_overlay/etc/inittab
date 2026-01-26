@@ -23,7 +23,7 @@
 ::respawn:su -p root -c 'ulimit -c unlimited; cat /tmp/neon-logs.fifo > /dev/virtio-ports/tech.neon.log.0'
 
 ::once:su -p postgres -c 'ulimit -c unlimited; PGDATA=/var/lib/postgresql/data pg_ctl start -o "-c config_file=/vela/config/postgresql.conf -c hba_file=/vela/config/pg_hba.conf" -l /tmp/service-postgresql.fifo'
-::once:su -p postgres -c 'ulimit -c unlimited; while ! pg_isready -U vela; do sleep 1; done && /usr/local/bin/migrate.sh'
+::once:su -p postgres -c 'ulimit -c unlimited; while ! pg_isready -U vela -d postgres; do sleep 1; done && /usr/local/bin/migrate.sh'
 ::respawn:su -p root -c '/opt/meta/server'
 ::respawn:su -p postgres -c '/usr/sbin/pgbouncer-server'
 ::respawn:su -p root -c '/usr/sbin/postgrest-server'
