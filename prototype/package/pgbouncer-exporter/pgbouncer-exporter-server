@@ -1,7 +1,7 @@
 #!/bin/sh
 while ! pg_isready; do sleep 1; done
-# Note: PGBOUNCER_EXPORTER_CONNECTION_STRING needs to be set in environment
-# Format: "postgres://user:password@localhost:6432/pgbouncer?sslmode=disable"
-FIFO=/tmp/service-pgbouncer-exporter.fifo
-[ -e $FIFO ] || mkfifo $FIFO
-/usr/sbin/pgbouncer_exporter 2>&1 | tee $FIFO
+# Load injected environment (e.g., PGBOUNCER_EXPORTER_CONNECTION_STRING)
+. /neonvm/runtime/env.sh
+# PGBOUNCER_EXPORTER_CONNECTION_STRING must be set, e.g.:
+# postgres://user:password@localhost:6432/pgbouncer?sslmode=disable
+/usr/sbin/pgbouncer_exporter 2>&1 | tee /tmp/service-pgbouncer-exporter.fifo
