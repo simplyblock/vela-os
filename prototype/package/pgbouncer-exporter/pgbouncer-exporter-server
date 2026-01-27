@@ -1,9 +1,9 @@
 #!/bin/sh
 while ! pg_isready -U vela -d postgres; do sleep 1; done
 
-if [ -f /neonvm/runtime/env.sh ]; then
-	. /neonvm/runtime/env.sh
+if [ -f /vela/secrets/db/pgbouncer_admin_password ]; then
+	pw=$(cat /vela/secrets/db/pgbouncer_admin_password)
+	export PGBOUNCER_EXPORTER_CONNECTION_STRING="postgres://pgbouncer_admin:${pw}@localhost:6432/postgres?sslmode=disable"
 fi
-# PGBOUNCER_EXPORTER_CONNECTION_STRING must be set, e.g.:
-# postgres://user:password@localhost:6432/pgbouncer?sslmode=disable
+
 /usr/sbin/pgbouncer_exporter 2>&1 | tee /tmp/service-pgbouncer-exporter.fifo
