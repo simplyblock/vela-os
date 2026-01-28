@@ -3,7 +3,7 @@ while ! pg_isready -U vela -d postgres; do sleep 1; done
 
 if [ -f /vela/secrets/db/pgbouncer_admin_password ]; then
 	pw=$(cat /vela/secrets/db/pgbouncer_admin_password)
-	export PGBOUNCER_EXPORTER_CONNECTION_STRING="postgres://pgbouncer_admin:${pw}@localhost:6432/postgres?sslmode=disable"
+	export PGBOUNCER_EXPORTER_CONNECTION_STRING="postgres://pgbouncer_admin:${pw}@localhost:6432/pgbouncer?sslmode=disable"
 fi
 
 /usr/sbin/pgbouncer_exporter 2>&1 | tee /tmp/service-pgbouncer-exporter.fifo
