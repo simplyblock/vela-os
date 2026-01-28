@@ -28,6 +28,7 @@
 ::respawn:su -p postgres -c '/usr/sbin/pgbouncer-server'
 ::respawn:su -p root -c '/usr/sbin/postgrest-server'
 ::respawn:su -p root -c '/usr/sbin/postgres-exporter-server'
+::respawn:su -p root -c '/usr/sbin/pgbouncer-exporter-server'
 ::respawn:su -p root -c '/usr/sbin/sb-storage-server'
 
 ttyS0::respawn:/neonvm/bin/agetty --8bits --local-line --noissue --noclear --noreset --host console --login-program /neonvm/bin/login --login-pause --autologin root 115200 ttyS0 linux
