@@ -1,4 +1,4 @@
-PGBOUNCER_EXPORTER_VERSION = 0.10.1
+PGBOUNCER_EXPORTER_VERSION = 0.11.0
 PGBOUNCER_EXPORTER_SOURCE = pgbouncer_exporter-$(PGBOUNCER_EXPORTER_VERSION).linux-amd64.tar.gz
 PGBOUNCER_EXPORTER_SITE = https://github.com/prometheus-community/pgbouncer_exporter/releases/download/v$(PGBOUNCER_EXPORTER_VERSION)
 PGBOUNCER_EXPORTER_LICENSE = Apache2.0
