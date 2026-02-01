@@ -9,7 +9,15 @@ endef
 
 define PGBOUNCER_EXPORTER_INSTALL_TARGET_CMDS
 	$(INSTALL) $(@D)/pgbouncer_exporter $(TARGET_DIR)/usr/sbin
-	$(INSTALL) -m 0755 $(PGBOUNCER_EXPORTER_PKGDIR)/pgbouncer-exporter-server $(TARGET_DIR)/usr/sbin
+endef
+
+define PGBOUNCER_EXPORTER_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 644 $(PGBOUNCER_EXPORTER_PKGDIR)/pgbouncer-exporter.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/pgbouncer-exporter.service
+endef
+
+define PGBOUNCER_EXPORTER_USERS
+	pgbouncer-exporter -1 pgbouncer-exporter -1 * - - - pgbouncer-exporter
 endef
 
 $(eval $(generic-package))
