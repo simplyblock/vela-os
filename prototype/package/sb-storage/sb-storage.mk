@@ -41,7 +41,6 @@ define SB_STORAGE_INSTALL_TARGET_CMDS
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-fs/prebuilds/win32*
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-os/prebuilds/win32*
     @rm -rf $(TARGET_DIR)/opt/storage/node_modules/bare-url/prebuilds/win32*
-    $(INSTALL) -m 0755 $(SB_STORAGE_PKGDIR)/sb-storage-server $(TARGET_DIR)/usr/sbin
 endef
 
 define SB_STORAGE_CLEAN_AMD64
@@ -61,5 +60,14 @@ ifeq ("$(SB_STORAGE_TARGET_ARCH)", "amd64")
 else
     SB_STORAGE_POST_INSTALL_TARGET_HOOKS+=SB_STORAGE_CLEAN_AARCH64
 endif
+
+define SB_STORAGE_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 644 $(SB_STORAGE_PKGDIR)/storage.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/storage.service
+endef
+
+define SB_STORAGE_USERS
+	storage -1 storage -1 * - - - storage
+endef
 
 $(eval $(generic-package))
