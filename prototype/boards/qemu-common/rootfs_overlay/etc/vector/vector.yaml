@@ -2,6 +2,15 @@ api:
   enabled: true
 
 sources:
+  host_metrics:
+    filesystem:
+      devices:
+        excludes: [binfmt_misc]
+      filesystems:
+        excludes: [binfmt_misc]
+      mountPoints:
+        excludes: ["*/proc/sys/fs/binfmt_misc"]
+    type: host_metrics
   postgresql:
     type: file_descriptor
     fd: ${VEC_SRV_POSTGRESQL_FD}
@@ -242,6 +251,11 @@ transforms:
       }
 
 sinks:
+  prom_exporter:
+    type: prometheus_exporter
+    inputs:
+      - host_metrics
+    address: "0.0.0.0:9100"
   basic_sink:
     type: 'loki'
     inputs:
