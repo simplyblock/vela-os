@@ -1,1 +1,0 @@
-vm-monitor -1 vm-monitor -1 !=blabla /nonexistent /bin/false vm-monitor monitor user

@@ -8,7 +8,6 @@
 ::respawn:/neonvm/bin/acpid -f -c /neonvm/acpi
 ::respawn:/neonvm/bin/chronyd -n -f /neonvm/config/chrony.conf -l /var/log/chrony/chrony.log
 ::respawn:/neonvm/bin/sshd -E /var/log/ssh.log -f /neonvm/config/sshd_config
-::respawn:/neonvm/bin/neonvmd --addr=0.0.0.0:25183
 ::respawn:/neonvm/bin/vmstart
 
 ::wait:su -p root -c 'ulimit -c unlimited; /usr/local/bin/create-fifos.sh > /dev/virtio-ports/tech.neon.log.0'
@@ -16,20 +15,7 @@
 
 ::sysinit:su -p root -c 'ulimit -c unlimited; /usr/sbin/cgconfigparser -l /etc/cgconfig.conf -s 1664'
 
-::sysinit:su -p root -c 'ulimit -c unlimited; PGDATA=/var/lib/postgresql/data; mkdir -p $PGDATA /run/postgresql && chown -R postgres:postgres $PGDATA /run/postgresql && [ -s "$PGDATA/PG_VERSION" ] || /neonvm/bin/su-exec postgres sh -c "PGDATA=$PGDATA pg_ctl init --options=--username=vela"'
-
-::respawn:su -p vm-monitor -c 'ulimit -c unlimited; RUST_LOG=info /usr/bin/vm-monitor --cgroup=vela --addr="0.0.0.0:10301"'
-
 ::respawn:su -p root -c 'ulimit -c unlimited; cat /tmp/neon-logs.fifo > /dev/virtio-ports/tech.neon.log.0'
-
-::once:su -p postgres -c 'ulimit -c unlimited; PGDATA=/var/lib/postgresql/data pg_ctl start -o "-c config_file=/vela/config/postgresql.conf -c hba_file=/vela/config/pg_hba.conf" -l /tmp/service-postgresql.fifo'
-::once:su -p postgres -c 'ulimit -c unlimited; while ! pg_isready -U vela -d postgres; do sleep 1; done && /usr/local/bin/migrate.sh'
-::respawn:su -p root -c '/opt/meta/server'
-::respawn:su -p postgres -c '/usr/sbin/pgbouncer-server'
-::respawn:su -p root -c '/usr/sbin/postgrest-server'
-::respawn:su -p root -c '/usr/sbin/postgres-exporter-server'
-::respawn:su -p root -c '/usr/sbin/pgbouncer-exporter-server'
-::respawn:su -p root -c '/usr/sbin/sb-storage-server'
 
 ttyS0::respawn:/neonvm/bin/agetty --8bits --local-line --noissue --noclear --noreset --host console --login-program /neonvm/bin/login --login-pause --autologin root 115200 ttyS0 linux
 ::shutdown:/neonvm/bin/vmshutdown

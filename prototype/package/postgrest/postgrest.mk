@@ -12,7 +12,15 @@ endef
 
 define POSTGREST_INSTALL_TARGET_CMDS
 	$(INSTALL) $(@D)/postgrest $(TARGET_DIR)/usr/sbin/postgrest
-	$(INSTALL) -m 0755 $(POSTGREST_PKGDIR)/postgrest-server $(TARGET_DIR)/usr/sbin
+endef
+
+define POSTGREST_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 644 $(POSTGREST_PKGDIR)/postgrest.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/postgrest.service
+endef
+
+define POSTGREST_USERS
+	postgrest -1 postgrest -1 * - - - postgrest
 endef
 
 $(eval $(generic-package))
