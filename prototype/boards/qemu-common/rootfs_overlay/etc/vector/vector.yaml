@@ -2,43 +2,31 @@ api:
   enabled: true
 
 sources:
-  postgresql:
-    type: file_descriptor
-    fd: ${VEC_SRV_POSTGRESQL_FD}
-    decoding:
-      codec: bytes
-  postgrest:
-    type: file_descriptor
-    fd: ${VEC_SRV_POSTGREST_FD}
-    decoding:
-      codec: bytes
-  storage:
-    type: file_descriptor
-    fd: ${VEC_SRV_STORAGE_FD}
-    decoding:
-      codec: bytes
-  pgmeta:
-    type: file_descriptor
-    fd: ${VEC_SRV_PGMETA_FD}
-    decoding:
-      codec: bytes
-  pgexporter:
-    type: file_descriptor
-    fd: ${VEC_SRV_PGEXPORTER_FD}
-    decoding:
-      codec: bytes
-  pgbouncer:
-    type: file_descriptor
-    fd: ${VEC_SRV_PGBOUNCER_FD}
-    decoding:
-      codec: bytes
-  pgbouncer_exporter:
-    type: file_descriptor
-    fd: ${VEC_SRV_PGBOUNCER_EXPORTER_FD}
-    decoding:
-      codec: bytes
+  journald:
+    type: journald
+    include_units:
+      - pgbouncer.service
+      - pgbouncer-exporter.service
+      - postgres-exporter.service
+      - postgres-meta.service
+      - postgresql.service
+      - postgrest.service
+      - storage.service
 
 transforms:
+  route_logs:
+    type: route
+    inputs:
+      - journald
+    route:
+      pgbouncer: '.SYSTEMD_UNIT == "pgbouncer.service"'
+      pgbouncer_exporter: '.SYSTEMD_UNIT == "pgbouncer-exporter.service"'
+      postgres_exporter: '.SYSTEMD_UNIT == "postgres-exporter.service"'
+      postgres_meta: '.SYSTEMD_UNIT == "postgres-meta.service"'
+      postgresql: '.SYSTEMD_UNIT == "postgresql.service"'
+      postgrest: '.SYSTEMD_UNIT == "postgrest.service"'
+      storage: '.SYSTEMD_UNIT == "storage.service"'
+
   postgresql_logs:
     type: remap
     inputs:
@@ -75,7 +63,7 @@ transforms:
   pgmeta_logs:
     type: remap
     inputs:
-      - pgmeta
+      - postgres_meta
     source: |-
       .appname = "pgmeta"
       .message_id = uuid_v7()
@@ -126,7 +114,7 @@ transforms:
   pgexporter_logs:
     type: remap
     inputs:
-      - pgexporter
+      - postgres_exporter
     source: |-
       .appname = "pgexporter"
       .message_id = uuid_v7()
@@ -241,6 +229,7 @@ transforms:
         .severity = "success"
       }
 
+
 sinks:
   basic_sink:
     type: 'loki'
@@ -260,6 +249,7 @@ sinks:
       service: '{{ .appname }}'
     encoding:
       codec: json
+
   http_sink:
     type: 'loki'
     inputs:
@@ -276,3 +266,8 @@ sinks:
       path: '{{ .metadata.request.path }}'
     encoding:
       codec: json
+
+  dummy:
+    type: blackhole
+    inputs:
+      - router_logs._unmatched

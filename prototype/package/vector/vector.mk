@@ -24,7 +24,7 @@ define VECTOR_INSTALL_INIT_SYSTEMD
 endef
 
 define VECTOR_USERS
-	vector -1 vector -1 * - - - vector
+	vector -1 vector -1 * /var/lib/vector - systemd-journal vector
 endef
 
 $(eval $(generic-package))

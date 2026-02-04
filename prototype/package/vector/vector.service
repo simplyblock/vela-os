@@ -1,5 +1,6 @@
 [Unit]
 Description=Vector log aggregation
+ConditionPathExists=/vela/secrets/analytics/branch
 
 [Service]
 User=vector
@@ -11,6 +12,7 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=vector
 
+StateDirectory=vector
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
