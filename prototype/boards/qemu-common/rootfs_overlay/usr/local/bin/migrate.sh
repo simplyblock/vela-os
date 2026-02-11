@@ -16,7 +16,6 @@ dbmate \
     --no-dump-schema up
 
 psql -v ON_ERROR_STOP=1 -U vela -d postgres -c "
-  ALTER USER postgres WITH PASSWORD '$PGPASSWORD';
   ALTER USER supabase_admin WITH PASSWORD '$PGPASSWORD';
 "
 
