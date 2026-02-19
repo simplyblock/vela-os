@@ -1,0 +1,1 @@
+SUBSYSTEM=="memory", ACTION=="online", RUN+="/usr/local/bin/pg-retune.sh"
