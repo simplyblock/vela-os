@@ -1,19 +1,20 @@
 #!/bin/sh
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - pgbouncer-server: $@"
+}
+
 while ! test -f /var/run/postgresql/.migration.done; do sleep 1; done
 
 setup_tls_hot_reload() {
-    if ! grep -q -E "^[[:space:]]*client_tls_sslmode[[:space:]]*=[[:space:]]*require" /vela/config/pgbouncer_pg18.ini; then
-        return 0
-    fi
-
-    echo "TLS explicitly required by configuration. Waiting for certificates..."
+    log "Waiting for certificates..."
     while ! test -f /vela/certs/tls.key || ! test -f /vela/certs/tls.crt; do sleep 1; done
-    echo "Certificates found. Starting hot-reload watcher in background..."
+    log "Certificates found. Starting hot-reload watcher in background..."
 
     (
       while true; do
           inotifywait -e modify,create,delete,move /vela/certs > /dev/null 2>&1
-          echo "Certificates modified, reloading PgBouncer..."
+          log "Certificates modified, reloading PgBouncer..."
           killall -HUP pgbouncer
           sleep 2
       done
