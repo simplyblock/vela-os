@@ -10,13 +10,20 @@ ulimit -c unlimited
 
 PITR_ARGS=""
 
-if [ -n "$RECOVERY_TARGET_TIME" ] && [ ! -f "$PGDATA/.recovery_done" ]; then
-    echo "Configuring Point-in-Time Recovery to $RECOVERY_TARGET_TIME"
-    
-    PITR_ARGS="-c recovery_target_time='$RECOVERY_TARGET_TIME' -c snapshot_pitr_target_time='$RECOVERY_TARGET_TIME'"
-    
-    # Mark recovery as configured so we don't do it again on next reboot
-    touch "$PGDATA/.recovery_done"
+if [ -n "$RECOVERY_TARGET_TIME" ]; then
+    DONE_TIME=""
+    if [ -f "$PGDATA/.recovery_done" ]; then
+        DONE_TIME=$(cat "$PGDATA/.recovery_done")
+    fi
+
+    if [ "$DONE_TIME" != "$RECOVERY_TARGET_TIME" ]; then
+        echo "Configuring Point-in-Time Recovery to $RECOVERY_TARGET_TIME"
+        
+        PITR_ARGS="-c recovery_target_time='$RECOVERY_TARGET_TIME' -c snapshot_pitr_target_time='$RECOVERY_TARGET_TIME'"
+        
+        # Mark recovery as configured so we don't do it again on next reboot
+        echo "$RECOVERY_TARGET_TIME" > "$PGDATA/.recovery_done"
+    fi
 fi
 
 pg_ctl start -o "-c config_file=/vela/config/postgresql.conf -c hba_file=/vela/config/pg_hba.conf $PITR_ARGS" -l /tmp/service-postgresql.fifo
