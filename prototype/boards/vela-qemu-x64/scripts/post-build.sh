@@ -56,8 +56,10 @@ makeSymlink "/usr/sbin/sshd" "${TARGET_DIR}/neonvm/bin/sshd"
 makeSymlink "/usr/sbin/acpid" "${TARGET_DIR}/neonvm/bin/acpid"
 makeSymlink "/usr/bin/flock" "${TARGET_DIR}/neonvm/bin/flock"
 makeSymlink "/sbin/blkid" "${TARGET_DIR}/neonvm/bin/blkid"
+makeSymlink "/usr/bin/findmnt" "${TARGET_DIR}/neonvm/bin/findmnt"
 makeSymlink "/sbin/vector" "${TARGET_DIR}/neonvm/bin/vector"
 makeSymlink "/sbin/resize2fs" "${TARGET_DIR}/neonvm/bin/resize2fs"
+makeSymlink "/usr/sbin/xfs_growfs" "${TARGET_DIR}/neonvm/bin/xfs_growfs"
 
 echo "Ensuring PostgreSQL extensions are trusted..."
 for filename in ${TARGET_DIR}/usr/share/postgresql/extension/*.control;

@@ -1,4 +1,4 @@
-NEONVMD_VERSION = 0.2.0
+NEONVMD_VERSION = 0.3.0
 NEONVMD_SOURCE = v$(NEONVMD_VERSION).tar.gz
 NEONVMD_SITE = https://github.com/simplyblock/autoscaling/archive/refs/tags
 NEONVMD_LICENSE = Apache2.0
