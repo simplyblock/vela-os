@@ -34,9 +34,11 @@ jobs:
   build:
     runs-on: self-hosted
     steps:
+      # Keeps .git, and with it the buildroot clone cached in .git/modules,
+      # like build-and-publish.yml does.
       - name: Cleanup
         run: |
-          rm -rf ./* ./.[!.]* || true
+          rm -rf ./*
 
       - name: Checkout
         uses: actions/checkout@v4
