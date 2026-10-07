@@ -35,8 +35,11 @@ case "${args[0]}" in
   ;;
 
   initialize )
-    git submodule update --init --recursive --remote --checkout
-    git submodule update --recursive
+    # sync first: a URL already registered in .git/config wins over a changed
+    # .gitmodules, and update --init never rewrites it.
+    git submodule sync --recursive || exit 1
+    git submodule update --init --recursive --remote --checkout || exit 1
+    git submodule update --recursive || exit 1
     cd buildroot
     echo "Reset buildroot submodule..."
     git reset --hard
