@@ -49,10 +49,14 @@ jobs:
           ./builder docker setup -i
           ./builder docker clean
 
+      # Both boards write to the same images directory, so each one's guest
+      # is collected before the next build replaces it.
       - name: Build amd64
         run: |
           ./builder setup pnfs_qemu_x64
           ./builder build
+          mkdir -p guest/amd64
+          cp -L images/vmlinuz images/disk.qcow2 guest/amd64/
 
       # A clean output volume, since the two boards differ in architecture
       # and toolchain. Recreating the volumes rather than make clean: the
@@ -63,6 +67,8 @@ jobs:
           ./builder docker clean
           ./builder setup pnfs_qemu_arm64
           ./builder build
+          mkdir -p guest/arm64
+          cp -L images/vmlinuz images/disk.qcow2 guest/arm64/
 
       - name: Log in to Docker Hub
         if: env.PUBLISH == 'true'
@@ -75,18 +81,17 @@ jobs:
         if: env.PUBLISH == 'true'
         uses: docker/setup-buildx-action@v3
 
+      # buildx, not the builder's legacy docker: one platform per tag for the
+      # per-architecture images, and both platforms for the manifests.
       - name: Push images and manifests
         if: env.PUBLISH == 'true'
         run: |
           set -euo pipefail
           sha="$(git rev-parse --short=7 HEAD)"
+          dockerfile=prototype/boards/pnfs-common/scripts/Dockerfile.publish
           for arch in amd64 arm64; do
-            for tag in "pnfsos-${arch}" "pnfsos-${sha}-${arch}"; do
-              docker tag "pnfs-guest:${arch}" "${IMAGE}:${tag}"
-              docker push "${IMAGE}:${tag}"
-            done
+            docker buildx build --platform "linux/${arch}" -f "${dockerfile}" --push \
+              -t "${IMAGE}:pnfsos-${arch}" -t "${IMAGE}:pnfsos-${sha}-${arch}" guest
           done
-          docker buildx imagetools create -t "${IMAGE}:pnfsos-${sha}" \
-            "${IMAGE}:pnfsos-${sha}-amd64" "${IMAGE}:pnfsos-${sha}-arm64"
-          docker buildx imagetools create -t "${IMAGE}:pnfsos" \
-            "${IMAGE}:pnfsos-${sha}-amd64" "${IMAGE}:pnfsos-${sha}-arm64"
+          docker buildx build --platform linux/amd64,linux/arm64 -f "${dockerfile}" --push \
+            -t "${IMAGE}:pnfsos" -t "${IMAGE}:pnfsos-${sha}" guest

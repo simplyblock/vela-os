@@ -55,7 +55,10 @@ guest panic end the QEMU process.
 
 ## Packaging
 
-`post-image.sh` builds `pnfs-guest:<arch>`, a `scratch` image holding only:
+The guest is a `scratch` image holding only the files below. `post-image.sh`
+builds it locally as `pnfs-guest:<arch>` when the target is the host's own
+architecture, and CI publishes every architecture with buildx from
+`scripts/Dockerfile.publish`:
 
 | Path          | Content                                           |
 |---------------|---------------------------------------------------|

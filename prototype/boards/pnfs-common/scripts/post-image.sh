@@ -22,11 +22,24 @@ if [ -f ${BINARIES_DIR}/${KERNEL_IMAGE} ]; then
 fi
 rm -rf ${BINARIES_DIR}/vmlinux
 
-# A scratch image holding /vmlinuz and /disk.qcow2, which the MDS image copies
-# out. Tagged per architecture; publishing combines both into one
-# multi-architecture pnfs-guest image the MDS build selects from.
-echo "Building guest image pnfs-guest:${TARGET_ARCH}..."
-docker build --platform linux/${TARGET_ARCH} --build-arg KERNEL_IMAGE=${KERNEL_IMAGE} \
-  -t pnfs-guest:${TARGET_ARCH} -f "${BOARD_DIR}/Dockerfile" "${BINARIES_DIR}"
+# A scratch image holding /vmlinuz and /disk.qcow2 for local use, which the
+# MDS image can take as GUEST_IMAGE. Only for the host's own architecture: the
+# builder container has Docker's legacy builder, which cannot build for another
+# one. CI publishes every architecture with buildx (Dockerfile.publish).
+case "$(uname -m)" in
+  x86_64) HOST_ARCH="amd64" ;;
+  aarch64|arm64) HOST_ARCH="arm64" ;;
+  *) HOST_ARCH="$(uname -m)" ;;
+esac
+if [ "${HOST_ARCH}" = "${TARGET_ARCH}" ]; then
+  echo "Building guest image pnfs-guest:${TARGET_ARCH}..."
+  if ! docker build --build-arg KERNEL_IMAGE=${KERNEL_IMAGE} \
+      -t pnfs-guest:${TARGET_ARCH} -f "${BOARD_DIR}/Dockerfile" "${BINARIES_DIR}"; then
+    echo "Building pnfs-guest:${TARGET_ARCH} failed." >&2
+    exit 1
+  fi
+else
+  echo "Skipping the local guest image: ${TARGET_ARCH} is not this host's architecture (${HOST_ARCH})."
+fi
 
 echo "Build completed."
