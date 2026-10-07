@@ -25,7 +25,15 @@ function getBusyboxConfigPath() {
 }
 
 function setupBuildroot() {
-  board=${1:-`echo vela-qemu-x64`}
+  board=""
+  prebuiltSDK=""
+  for arg in "$@"; do
+    case "${arg}" in
+      --prebuilt-sdk ) prebuiltSDK="yes" ;;
+      * ) board="${arg}" ;;
+    esac
+  done
+  board=${board:-vela-qemu-x64}
   case "${board}" in
     vela-qemu-x64 )
       defconfig="vela_qemu_x64_defconfig"
@@ -43,6 +51,20 @@ function setupBuildroot() {
 
   echo "Setting up buildroot to use configuration '${defconfig}'"
   make O=${BR2_OUTPUT_PATH} ${defconfig}
+
+  # The board's defconfig builds its own toolchain. The prebuilt SDK replaces it
+  # by merging the external toolchain over the result, then letting kconfig
+  # resolve what that changes.
+  if [ "${prebuiltSDK}" == "yes" ]; then
+    echo "Using the prebuilt SDK instead of building the toolchain"
+    ${PATH_BUILDROOT}/support/kconfig/merge_config.sh -m -O ${BR2_OUTPUT_PATH} \
+      ${BR2_OUTPUT_PATH}/.config ${PATH_PROTOTYPE}/configs/prebuilt-sdk.fragment || exit 1
+    make O=${BR2_OUTPUT_PATH} olddefconfig || exit 1
+    if ! grep -q '^BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y$' ${BR2_OUTPUT_PATH}/.config; then
+      echo "The prebuilt SDK did not take: the board's configuration rejected the external toolchain"
+      exit 1
+    fi
+  fi
 
   if [ -f ${PATH_OUTPUT}/.config ]; then
     echo "Creating builder configuration..."

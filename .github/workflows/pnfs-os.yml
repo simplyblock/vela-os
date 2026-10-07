@@ -21,6 +21,11 @@ on:
   pull_request:
     branches: [main, pnfs-minimal]
   workflow_dispatch:
+    inputs:
+      prebuilt_sdk:
+        description: "Download the prebuilt SDK instead of building the toolchain"
+        type: boolean
+        default: true
 
 concurrency:
   group: velaos-builder
@@ -29,6 +34,9 @@ concurrency:
 env:
   IMAGE: docker.io/simplyblock/spdkcsi
   PUBLISH: ${{ github.event_name != 'pull_request' }}
+  # The prebuilt SDKs are built for x86_64 Linux hosts, which the runner is.
+  # Every run uses them except a manual one that asks for the toolchain build.
+  SDK_FLAG: ${{ (github.event_name != 'workflow_dispatch' || inputs.prebuilt_sdk) && '--prebuilt-sdk' || '' }}
 
 jobs:
   build:
@@ -53,7 +61,7 @@ jobs:
       # is collected before the next build replaces it.
       - name: Build amd64
         run: |
-          ./builder setup pnfs_qemu_x64
+          ./builder setup pnfs_qemu_x64 ${SDK_FLAG}
           ./builder build
           mkdir -p guest/amd64
           cp -L images/vmlinuz images/disk.qcow2 guest/amd64/
@@ -65,7 +73,7 @@ jobs:
       - name: Build arm64
         run: |
           ./builder docker clean
-          ./builder setup pnfs_qemu_arm64
+          ./builder setup pnfs_qemu_arm64 ${SDK_FLAG}
           ./builder build
           mkdir -p guest/arm64
           cp -L images/vmlinuz images/disk.qcow2 guest/arm64/
