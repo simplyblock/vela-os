@@ -1,0 +1,88 @@
+# Builds the pNFS MDS guest (prototype/boards/pnfs-common) for amd64 and arm64
+# and publishes it to docker.io/simplyblock/spdkcsi, next to the CSI images the
+# MDS image is released with:
+#
+#   pnfsos-amd64, pnfsos-arm64   one architecture each (scratch: /vmlinuz, /disk.qcow2)
+#   pnfsos                       multi-architecture manifest over both, the MDS
+#                                image's GUEST_IMAGE
+#   pnfsos-<sha>[-<arch>]        the same, pinned to the commit
+#
+# Both architectures build in one job, one after the other: the builder keeps
+# its output in a Docker volume named per host, not per job, so two builds on
+# one host would overwrite each other. The concurrency group serializes this
+# workflow across branches for the same reason, which matters once a host
+# carries more than one runner. build-and-publish.yml uses the same volumes and
+# is not in the group yet.
+name: Build and Publish pNFS OS
+
+on:
+  push:
+    branches: [main, pnfs-minimal]
+  pull_request:
+    branches: [main, pnfs-minimal]
+  workflow_dispatch:
+
+concurrency:
+  group: velaos-builder
+  cancel-in-progress: false
+
+env:
+  IMAGE: docker.io/simplyblock/spdkcsi
+  PUBLISH: ${{ github.event_name != 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: Cleanup
+        run: |
+          rm -rf ./* ./.[!.]* || true
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker build environment
+        run: |
+          ./builder initialize
+          ./builder docker setup -i
+          ./builder docker clean
+
+      - name: Build amd64
+        run: |
+          ./builder setup pnfs_qemu_x64
+          ./builder build
+
+      # A clean output directory, since the two boards differ in architecture
+      # and toolchain. The download and compiler caches survive it.
+      - name: Build arm64
+        run: |
+          ./builder clean
+          ./builder setup pnfs_qemu_arm64
+          ./builder build
+
+      - name: Log in to Docker Hub
+        if: env.PUBLISH == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        if: env.PUBLISH == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Push images and manifests
+        if: env.PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse --short=7 HEAD)"
+          for arch in amd64 arm64; do
+            for tag in "pnfsos-${arch}" "pnfsos-${sha}-${arch}"; do
+              docker tag "pnfs-guest:${arch}" "${IMAGE}:${tag}"
+              docker push "${IMAGE}:${tag}"
+            done
+          done
+          docker buildx imagetools create -t "${IMAGE}:pnfsos-${sha}" \
+            "${IMAGE}:pnfsos-${sha}-amd64" "${IMAGE}:pnfsos-${sha}-arm64"
+          docker buildx imagetools create -t "${IMAGE}:pnfsos" \
+            "${IMAGE}:pnfsos-${sha}-amd64" "${IMAGE}:pnfsos-${sha}-arm64"
