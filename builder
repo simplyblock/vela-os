@@ -54,6 +54,7 @@ Vela: Operating System Builder
 
 Commands:
   setup [<boardname>]     Sets up the buildroot environment with the specified {boardname}_defconfig, default: vela-qemu-x64
+                          pNFS boards: pnfs_qemu_x64, pnfs_qemu_arm64
   config [<package>]
     - config [buildroot]  Opens the buildroot configuration
     - config linux        Opens the linux configuration

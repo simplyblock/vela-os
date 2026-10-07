@@ -1,0 +1,42 @@
+# pNFS metadata server: kernel nfsd (NFSv4.1+) with SCSI and block layouts,
+# backed by simplyblock volumes over NVMe-oF/TCP with native ANA multipath.
+
+CONFIG_NETWORK_FILESYSTEMS=y
+CONFIG_FILE_LOCKING=y
+CONFIG_KEYS=y
+
+# NFS server
+CONFIG_NFSD=y
+# CONFIG_NFSD_V2 is not set
+# CONFIG_NFSD_V3_ACL is not set
+CONFIG_NFSD_V4=y
+CONFIG_NFSD_BLOCKLAYOUT=y
+CONFIG_NFSD_SCSILAYOUT=y
+# CONFIG_NFSD_FLEXFILELAYOUT is not set
+# CONFIG_NFSD_V4_SECURITY_LABEL is not set
+
+# NFS client, only for the local 127.0.0.1:/ health self-check
+CONFIG_NFS_FS=y
+# CONFIG_NFS_V2 is not set
+# CONFIG_NFS_V3 is not set
+CONFIG_NFS_V4=y
+CONFIG_NFS_V4_1=y
+# CONFIG_NFS_V4_2 is not set
+# CONFIG_ROOT_NFS is not set
+
+# NVMe-oF/TCP initiator with native multipath (nvme_get_unique_id used by
+# the SCSI layout, persistent reservations used for client fencing)
+CONFIG_NVME_CORE=y
+CONFIG_NVME_MULTIPATH=y
+CONFIG_NVME_FABRICS=y
+CONFIG_NVME_TCP=y
+
+# Device mapper for LVM-striped exports
+CONFIG_MD=y
+CONFIG_BLK_DEV_DM=y
+
+CONFIG_XFS_FS=y
+
+# Guest contract: static address from the kernel command line (ip=), systemd
+CONFIG_IP_PNP=y
+CONFIG_FHANDLE=y
