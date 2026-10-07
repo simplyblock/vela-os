@@ -54,11 +54,13 @@ jobs:
           ./builder setup pnfs_qemu_x64
           ./builder build
 
-      # A clean output directory, since the two boards differ in architecture
-      # and toolchain. The download and compiler caches survive it.
+      # A clean output volume, since the two boards differ in architecture
+      # and toolchain. Recreating the volumes rather than make clean: the
+      # images directory is a bind mount make clean cannot remove. The
+      # download and compiler caches are host directories and survive it.
       - name: Build arm64
         run: |
-          ./builder clean
+          ./builder docker clean
           ./builder setup pnfs_qemu_arm64
           ./builder build
 
