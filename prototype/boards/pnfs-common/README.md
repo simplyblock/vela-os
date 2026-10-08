@@ -72,6 +72,20 @@ simplyblock-operator), which copies both to `/mds/kernel/vmlinuz` and
 of the guest: the MDS image installs Alpine's `aavmf` and the runner uses
 `/usr/share/AAVMF/QEMU_EFI.fd`.
 
+## Kernel patches
+
+The kernel is vela's 6.12 with the pNFS fragment on top and no patches.
+`patches/linux` holds only `linux.hash`, a symlink to vela's, which pins the
+tarball. The guest does not share vela's patch directory, because Buildroot
+applies every patch in it:
+
+- `0001` to `0004` fix x86 page-table setup during memory hot-add. The runner
+  starts QEMU with a fixed `-m` and no hotplug slots, so that code never runs,
+  and on arm64 it is not even built.
+- `0005` is Neon's kcompactd debug logging. It prints a line on every kcompactd
+  wake, several a second, and the guest console carries each into the MDS pod
+  log.
+
 ## Guest layout
 
 | Path                            | Kind                  | Content                                                   |
