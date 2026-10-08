@@ -40,6 +40,12 @@ BR2_PACKAGE_NFS_UTILS_NFSV4=y
 BR2_PACKAGE_NFS_UTILS_RPCDEBUG=y
 BR2_PACKAGE_NFS_UTILS_RPC_NFSD=y
 BR2_PACKAGE_SYSTEMD_LOGIND=y
+# systemd links libcrypto whenever its build finds OpenSSL, and with the prebuilt
+# SDK it finds the host's: the guest then boots a systemd whose libcrypto.so.3 is
+# not in the image, and init dies. Building OpenSSL for the target puts the one it
+# links in the image.
+BR2_PACKAGE_OPENSSL=y
+BR2_PACKAGE_LIBOPENSSL=y
 # BR2_PACKAGE_SYSTEMD_HOSTNAMED is not set
 # BR2_PACKAGE_SYSTEMD_HWDB is not set
 # BR2_PACKAGE_SYSTEMD_NETWORKD is not set
