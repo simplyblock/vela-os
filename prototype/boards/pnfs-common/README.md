@@ -72,16 +72,30 @@ simplyblock-operator), which copies both to `/mds/kernel/vmlinuz` and
 of the guest: the MDS image installs Alpine's `aavmf` and the runner uses
 `/usr/share/AAVMF/QEMU_EFI.fd`.
 
-## Kernel patches
+## Kernel
 
-The kernel is vela's 6.12 with the pNFS fragment on top and no patches.
-`patches/linux` holds only `linux.hash`, a symlink to vela's, which pins the
-tarball. The guest does not share vela's patch directory, because Buildroot
-applies every patch in it:
+The guest runs Linux 6.18, the newest long-term series. The pNFS SCSI layout
+depends on the NVMe-oF and NFSv4.1 server code, and both change a lot between
+releases.
+
+| File                                   | Content                                                              |
+|----------------------------------------|----------------------------------------------------------------------|
+| `pnfs-qemu-x64/linux.config`           | x86 base config, vela's config carried to 6.18 (savedefconfig)       |
+| `pnfs-qemu-arm64/linux.config`         | arm64 base config (savedefconfig)                                    |
+| `pnfs-common/linux-pnfs.fragment`      | nfsd, layouts, NVMe-oF/TCP, and the guest contract, on top of either |
+| `pnfs-common/patches/linux/linux.hash` | the tarball's sha256                                                 |
+
+The toolchain's kernel headers stay in the 6.12 series (`BR2_KERNEL_HEADERS_6_12`)
+rather than following the kernel. The kernel does not build against them, only
+userspace does, and headers older than the running kernel are always safe. It
+also keeps the prebuilt SDK usable: the archive is named by target and build
+host only, so vela and the guest share it, and vela still runs 6.12.
+
+The guest applies none of vela's kernel patches, and does not share its patch
+directory, because Buildroot applies every patch in it:
 
 - `0001` to `0004` fix x86 page-table setup during memory hot-add. The runner
-  starts QEMU with a fixed `-m` and no hotplug slots, so that code never runs,
-  and on arm64 it is not even built.
+  starts QEMU with a fixed `-m` and no hotplug slots, so that code never runs.
 - `0005` is Neon's kcompactd debug logging. It prints a line on every kcompactd
   wake, several a second, and the guest console carries each into the MDS pod
   log.
