@@ -26,6 +26,7 @@ holds the nfsdcld client recovery database. Without it the guest never reaches
 
 ```
 root=/dev/vda ro console=hvc0 panic=-1 ip=<guest>::<gateway>:<netmask>:<hostname>:eth0:off
+nfsd.pnfs_probe_name=<probe file name> nfsd.pnfs_layout_hold=<seconds>
 ```
 
 arm64 additionally needs `acpi=on`.
@@ -36,6 +37,9 @@ arm64 additionally needs `acpi=on`.
   nfsd derives its server owner and scope from it, and NFSv4.1 clients only
   reclaim state after a restart if they did not change.
 - `init=` is not needed, the default `/sbin/init` is systemd.
+- `nfsd.pnfs_probe_name` and `nfsd.pnfs_layout_hold` turn on the layout hold
+  of the guest's nfsd patch (see Kernel). The name must be the one the CSI
+  node writes its layout probe under.
 
 ### Architecture specifics
 
@@ -78,12 +82,13 @@ The guest runs Linux 6.18, the newest long-term series. The pNFS SCSI layout
 depends on the NVMe-oF and NFSv4.1 server code, and both change a lot between
 releases.
 
-| File                                   | Content                                                              |
-|----------------------------------------|----------------------------------------------------------------------|
-| `pnfs-qemu-x64/linux.config`           | x86 base config, vela's config carried to 6.18 (savedefconfig)       |
-| `pnfs-qemu-arm64/linux.config`         | arm64 base config (savedefconfig)                                    |
-| `pnfs-common/linux-pnfs.fragment`      | nfsd, layouts, NVMe-oF/TCP, and the guest contract, on top of either |
-| `pnfs-common/patches/linux/linux.hash` | the tarball's sha256                                                 |
+| File                                     | Content                                                              |
+|------------------------------------------|----------------------------------------------------------------------|
+| `pnfs-qemu-x64/linux.config`             | x86 base config, vela's config carried to 6.18 (savedefconfig)       |
+| `pnfs-qemu-arm64/linux.config`           | arm64 base config (savedefconfig)                                    |
+| `pnfs-common/linux-pnfs.fragment`        | nfsd, layouts, NVMe-oF/TCP, and the guest contract, on top of either |
+| `pnfs-common/patches/linux/linux.hash`   | the tarball's sha256                                                 |
+| `pnfs-common/patches/linux/0001-*.patch` | the nfsd layout hold, below                                          |
 
 The toolchain's kernel headers stay in the 6.12 series (`BR2_KERNEL_HEADERS_6_12`)
 rather than following the kernel. The kernel does not build against them, only
@@ -91,14 +96,27 @@ userspace does, and headers older than the running kernel are always safe. It
 also keeps the prebuilt SDK usable: the archive is named by target and build
 host only, so vela and the guest share it, and vela still runs 6.12.
 
-The guest applies none of vela's kernel patches, and does not share its patch
-directory, because Buildroot applies every patch in it:
+The guest does not share vela's patch directory, because Buildroot applies
+every patch in it, and needs none of vela's patches:
 
 - `0001` to `0004` fix x86 page-table setup during memory hot-add. The runner
   starts QEMU with a fixed `-m` and no hotplug slots, so that code never runs.
 - `0005` is Neon's kcompactd debug logging. It prints a line on every kcompactd
   wake, several a second, and the guest console carries each into the MDS pod
   log.
+
+It carries one patch of its own,
+`0001-nfsd-hold-layouts-until-the-client-has-probed-the-filesystem.patch`. A
+pNFS client opens the device a SCSI layout names in the mount namespace of the
+task that asked for the layout, and an application pod's `/dev` has no
+`disk/by-id`. The CSI node makes the first lookup itself, from the host's
+`/dev`, and the client caches the device. A server restart drops that cache,
+and if the application asks first, the lookup fails and its I/O goes through
+the metadata server from then on. With both parameters set, nfsd answers a
+client's layout requests with `NFS4ERR_LAYOUTTRYLATER` until the client has
+taken a layout on the probe file of that filesystem, during the grace period
+and for `pnfs_layout_hold` seconds after the client's first request past it.
+Loopback clients are not held.
 
 ## Guest layout
 
