@@ -126,7 +126,9 @@ a Replace with a zero key on NVMe, so its registration outlives the server, and
 after a restart the client cannot register its new key: the device is marked
 unavailable and its I/O goes through the metadata server. When nfsd reserves the
 device for a client, it now preempts every registered key that is neither its
-own nor from the current boot.
+own nor from the current boot. SPDK's target does not implement Preempt and
+Abort and answers it with Invalid Field, which also defeated nfsd's fencing of
+a client whose recall timed out, so both fall back to a plain Preempt.
 
 ## Guest layout
 
