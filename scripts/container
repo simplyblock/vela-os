@@ -219,11 +219,24 @@ case "${1}" in
 
   ccache )
     # buildroot's own ccache and cache directory: `ccache stats`, `ccache zero`.
+    # Not buildroot's ccache-stats target: it runs output/host/bin/ccache,
+    # which per-package directories only assemble at the end of a build, so
+    # it fails before the first one. The binary is taken from wherever
+    # host-ccache installed it.
     case "${2}" in
-      stats ) ${MAKE} ccache-stats ;;
-      zero ) ${MAKE} ccache-options CCACHE_OPTIONS="--zero-stats" ;;
+      stats ) option="--show-stats" ;;
+      zero ) option="--zero-stats" ;;
       * ) echo "Usage: ccache stats|zero"; exit 1 ;;
     esac
+    ${MAKE} host-ccache > /dev/null || exit 1
+    for ccache in ${BR2_OUTPUT_PATH}/per-package/host-ccache/host/bin/ccache ${BR2_OUTPUT_PATH}/host/bin/ccache; do
+      if [ -x "${ccache}" ]; then
+        CCACHE_DIR="${BR2_CCACHE_DIR}" ${ccache} ${option}
+        exit $?
+      fi
+    done
+    echo "host-ccache built, but no ccache binary found"
+    exit 1
   ;;
 
   rebuild )
