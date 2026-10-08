@@ -88,7 +88,7 @@ releases.
 | `pnfs-qemu-arm64/linux.config`           | arm64 base config (savedefconfig)                                    |
 | `pnfs-common/linux-pnfs.fragment`        | nfsd, layouts, NVMe-oF/TCP, and the guest contract, on top of either |
 | `pnfs-common/patches/linux/linux.hash`   | the tarball's sha256                                                 |
-| `pnfs-common/patches/linux/0001-*.patch` | the nfsd layout hold, below                                          |
+| `pnfs-common/patches/linux/000*.patch`   | the nfsd layout hold and stale-key fencing, below                    |
 
 The toolchain's kernel headers stay in the 6.12 series (`BR2_KERNEL_HEADERS_6_12`)
 rather than following the kernel. The kernel does not build against them, only
@@ -105,8 +105,8 @@ every patch in it, and needs none of vela's patches:
   wake, several a second, and the guest console carries each into the MDS pod
   log.
 
-It carries one patch of its own,
-`0001-nfsd-hold-layouts-until-the-client-has-probed-the-filesystem.patch`. A
+It carries two patches of its own. The first,
+`0001-nfsd-hold-layouts-until-the-client-has-probed-the-filesystem.patch`: a
 pNFS client opens the device a SCSI layout names in the mount namespace of the
 task that asked for the layout, and an application pod's `/dev` has no
 `disk/by-id`. The CSI node makes the first lookup itself, from the host's
@@ -117,6 +117,16 @@ client's layout requests with `NFS4ERR_LAYOUTTRYLATER` until the client has
 taken a layout on the probe file of that filesystem, during the grace period
 and for `pnfs_layout_hold` seconds after the client's first request past it.
 Loopback clients are not held.
+
+The second,
+`0002-nfsd-fence-SCSI-registrations-left-by-an-earlier-server-instance.patch`:
+a client registers the NVMe reservation key nfsd gives it, and the key carries
+the server's boot time. On releasing the device the client's unregister becomes
+a Replace with a zero key on NVMe, so its registration outlives the server, and
+after a restart the client cannot register its new key: the device is marked
+unavailable and its I/O goes through the metadata server. When nfsd reserves the
+device for a client, it now preempts every registered key that is neither its
+own nor from the current boot.
 
 ## Guest layout
 
