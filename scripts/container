@@ -26,10 +26,11 @@ function getBusyboxConfigPath() {
 
 function setupBuildroot() {
   board=""
-  prebuiltSDK=""
+  fragments=()
   for arg in "$@"; do
     case "${arg}" in
-      --prebuilt-sdk ) prebuiltSDK="yes" ;;
+      --prebuilt-sdk ) fragments+=("prebuilt-sdk") ;;
+      --parallel ) fragments+=("parallel") ;;
       * ) board="${arg}" ;;
     esac
   done
@@ -52,18 +53,26 @@ function setupBuildroot() {
   echo "Setting up buildroot to use configuration '${defconfig}'"
   make O=${BR2_OUTPUT_PATH} ${defconfig}
 
-  # The board's defconfig builds its own toolchain. The prebuilt SDK replaces it
-  # by merging the external toolchain over the result, then letting kconfig
-  # resolve what that changes.
-  if [ "${prebuiltSDK}" == "yes" ]; then
-    echo "Using the prebuilt SDK instead of building the toolchain"
+  # Switches are fragments merged over the board's defconfig, then resolved by
+  # kconfig: --prebuilt-sdk replaces the toolchain the board would build with
+  # the downloaded SDK, and --parallel turns on per-package directories.
+  for fragment in "${fragments[@]}"; do
+    echo "Merging ${fragment}.fragment"
     ${PATH_BUILDROOT}/support/kconfig/merge_config.sh -m -O ${BR2_OUTPUT_PATH} \
-      ${BR2_OUTPUT_PATH}/.config ${PATH_PROTOTYPE}/configs/prebuilt-sdk.fragment || exit 1
+      ${BR2_OUTPUT_PATH}/.config ${PATH_PROTOTYPE}/configs/${fragment}.fragment || exit 1
+  done
+  if [ ${#fragments[@]} -gt 0 ]; then
     make O=${BR2_OUTPUT_PATH} olddefconfig || exit 1
-    if ! grep -q '^BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y$' ${BR2_OUTPUT_PATH}/.config; then
-      echo "The prebuilt SDK did not take: the board's configuration rejected the external toolchain"
-      exit 1
-    fi
+    for fragment in "${fragments[@]}"; do
+      # Every option a fragment sets has to survive kconfig, or the switch did
+      # not take and the build would quietly be something else.
+      grep -E '^BR2_[A-Za-z0-9_]+=' ${PATH_PROTOTYPE}/configs/${fragment}.fragment | while read -r line; do
+        if ! grep -qxF "${line}" ${BR2_OUTPUT_PATH}/.config; then
+          echo "${fragment}: ${line} did not take, the board's configuration rejected it"
+          exit 1
+        fi
+      done || exit 1
+    done
   fi
 
   if [ -f ${PATH_OUTPUT}/.config ]; then
@@ -191,15 +200,30 @@ case "${1}" in
   ;;
 
   build )
-    export BR2_JLEVEL=${BR2_JLEVEL:-$(expr $(cat /proc/cpuinfo | grep processor | wc -l) + 1)}
+    cpus=$(grep -c processor /proc/cpuinfo)
+    export BR2_JLEVEL=${BR2_JLEVEL:-$(expr ${cpus} + 1)}
     echo "Running multithreaded build with ${BR2_JLEVEL} make instances"
     if [ "${2}" == "dts" ]; then
        ${MAKE} linux-rebuild
     elif [ ! "${2}" == "" ]; then
       ${MAKE} ${2}-build
+    elif grep -q '^BR2_PER_PACKAGE_DIRECTORIES=y$' ${BR2_OUTPUT_PATH}/.config; then
+      # Packages build side by side, each with BR2_JLEVEL jobs of its own. The
+      # load limit keeps the product of the two from swamping the host.
+      echo "Building packages in parallel: -j${cpus} -l${cpus}"
+      ${MAKE} -j${cpus} -l${cpus}
     else
       ${MAKE}
     fi
+  ;;
+
+  ccache )
+    # buildroot's own ccache and cache directory: `ccache stats`, `ccache zero`.
+    case "${2}" in
+      stats ) ${MAKE} ccache-stats ;;
+      zero ) ${MAKE} ccache-options CCACHE_OPTIONS="--zero-stats" ;;
+      * ) echo "Usage: ccache stats|zero"; exit 1 ;;
+    esac
   ;;
 
   rebuild )

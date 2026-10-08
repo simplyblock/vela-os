@@ -22,7 +22,7 @@ echo "Devkit Base Path: ${BASEDIR}"
 
 args=("$@")
 case "${args[0]}" in
-  setup|config|saveconfig|clean|build|rebuild|download|dependencies|buildtimegraph|buildsize|env|makesdk|licenses )
+  setup|config|saveconfig|clean|build|rebuild|download|dependencies|buildtimegraph|buildsize|env|makesdk|licenses|ccache )
     source ${BASEDIR}/scripts/helper "${args[@]}"
   ;;
 
@@ -60,6 +60,8 @@ Commands:
                           pNFS boards: pnfs_qemu_x64, pnfs_qemu_arm64
                           --prebuilt-sdk downloads the toolchain (makesdk's output)
                           instead of building it
+                          --parallel builds packages side by side (per-package
+                          directories, experimental)
   config [<package>]
     - config [buildroot]  Opens the buildroot configuration
     - config linux        Opens the linux configuration
@@ -74,6 +76,7 @@ Commands:
     - clean ccache        Cleans the CCACHE cache directory
     - clean <package>     Cleans the build directory of the given package
   makesdk                 Prebuilds the SDK for reuse
+  ccache stats|zero       Shows or resets the compiler cache's hit statistics
   download                Downloads all necessary source packages without building them
   dependencies            Builds a dependency graph of packages
   buildtimegraph          Builds a graph of the compile times of all packages
