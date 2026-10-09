@@ -40,3 +40,17 @@ CONFIG_XFS_FS=y
 # Guest contract: static address from the kernel command line (ip=), systemd
 CONFIG_IP_PNP=y
 CONFIG_FHANDLE=y
+
+# Hang diagnostics. In run pnfs-1791558094 nfsd stopped closing client
+# connections while the guest kept running, and the console said nothing:
+# none of these were on. A task blocked for 60 s prints its stack, a CPU stuck
+# without scheduling prints too, and the agent reads nfsd threads' stacks from
+# /proc/<pid>/stack. Magic SysRq lets the runner ask for all blocked tasks
+# (sysrq-w) through QEMU's monitor. DEBUG_KERNEL only unlocks these options.
+CONFIG_DEBUG_KERNEL=y
+CONFIG_DETECT_HUNG_TASK=y
+CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=60
+CONFIG_SOFTLOCKUP_DETECTOR=y
+CONFIG_STACKTRACE=y
+CONFIG_MAGIC_SYSRQ=y
+CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE=0x1
