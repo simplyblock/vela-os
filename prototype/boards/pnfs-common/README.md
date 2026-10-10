@@ -88,7 +88,7 @@ releases.
 | `pnfs-qemu-arm64/linux.config`           | arm64 base config (savedefconfig)                                    |
 | `pnfs-common/linux-pnfs.fragment`        | nfsd, layouts, NVMe-oF/TCP, and the guest contract, on top of either |
 | `pnfs-common/patches/linux/linux.hash`   | the tarball's sha256                                                 |
-| `pnfs-common/patches/linux/000*.patch`   | the nfsd layout hold, stale-key fencing, and reclaim retry, below    |
+| `pnfs-common/patches/linux/000*.patch`   | the four nfsd patches below                                          |
 
 The toolchain's kernel headers stay in the 6.12 series (`BR2_KERNEL_HEADERS_6_12`)
 rather than following the kernel. The kernel does not build against them, only
@@ -105,7 +105,7 @@ every patch in it, and needs none of vela's patches:
   wake, several a second, and the guest console carries each into the MDS pod
   log.
 
-It carries three patches of its own. The first,
+It carries four patches of its own. The first,
 `0001-nfsd-hold-layouts-until-the-client-has-probed-the-filesystem.patch`: a
 pNFS client opens the device a SCSI layout names in the mount namespace of the
 task that asked for the layout, and an application pod's `/dev` has no
@@ -136,6 +136,16 @@ nfsd starts, and grace begins, before the agent has exported every filesystem
 again, and a client reclaiming an open on an export not yet back was answered
 STALE, which drops the open and fails the application's I/O with EBADF. During
 grace an unknown export is now answered NFS4ERR_DELAY, which clients retry.
+
+The fourth,
+`0004-nfsd-never-wait-for-a-layout-break-with-an-nfsd-thread-held.patch`: a
+write through the metadata server, a size change, and an fallocate make XFS
+break the layouts other clients hold on the file, and XFS waits for them with
+the nfsd thread held. Clients give layouts back with LAYOUTRETURN, which needs
+a free nfsd thread, so once every thread waited in `__break_lease` nfsd served
+nothing until each recall timed out and its client was fenced. nfsd now starts
+the break without waiting and answers NFS4ERR_DELAY while layouts are out, as
+it already does for delegations.
 
 ## Guest layout
 
