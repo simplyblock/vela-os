@@ -170,6 +170,8 @@ only in LAYOUTCOMMIT.
 | `/var/lib/simplyblock/exports`  | tmpfs (under `/var`)  | export mount points                                       |
 | `/etc/exports.d`                | → `/run/exports.d`    | export drop-ins, rebuilt by the operator after every boot |
 | `/run/nfs`                      | tmpfs                 | nfs-utils state (`etab`, `rpc_pipefs`)                    |
+| `/root/.ssh`                    | → `/run/root-ssh`     | debug SSH `authorized_keys`, written at boot from fw_cfg  |
+| `/run/dropbear`                 | tmpfs                 | debug SSH host key, made fresh at each boot               |
 
 ## Services
 
@@ -180,3 +182,12 @@ only in LAYOUTCOMMIT.
   against the already running server.
 - journald forwards to the console, so the runner's pod log carries the
   guest's service logs.
+- `debug-ssh.service` runs dropbear on port 22, root by key only (`-s`), and
+  only with `simplyblock.debug_ssh=1` on the kernel command line, which the
+  runner adds when started with `-debug-ssh`. Buildroot's own `dropbear.service`
+  and `dropbear.socket` are masked, so nothing else starts it.
+  `debug-ssh-key.service`, under the same condition, copies the runner's public
+  key from the QEMU fw_cfg item `opt/io.simplyblock/ssh_authorized_keys` to
+  `/run/root-ssh/authorized_keys`. The guest's address is reachable only from
+  the runner, so this is a shell for whoever may exec into the runner
+  container, and a guest started without the flag has no SSH at all.

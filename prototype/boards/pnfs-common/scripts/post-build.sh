@@ -47,3 +47,15 @@ echo "/dev/disk/by-id/virtio-pnfs-state /var/lib/nfs ext4 defaults,noatime,x-sys
 # The address comes from the kernel command line (ip=...:eth0:off) and is
 # configured before udev runs, keep kernel interface names so it stays on eth0.
 makeSymlink "/dev/null" "${TARGET_DIR}/etc/systemd/network/99-default.link"
+
+# Debug SSH (dropbear) runs only with simplyblock.debug_ssh=1 on the kernel
+# command line, through debug-ssh.service. Buildroot's own dropbear units would
+# start it on every boot, so they are masked. Root's authorized_keys is written
+# to /run at boot from QEMU fw_cfg (debug-ssh-key.service).
+echo "Configuring debug SSH..."
+for unit in dropbear.service dropbear.socket; do
+  makeSymlink "/dev/null" "${TARGET_DIR}/etc/systemd/system/${unit}"
+done
+makeSymlink "../debug-ssh.service" "${UNITDIR}/multi-user.target.wants/debug-ssh.service"
+mkdir -p "${TARGET_DIR}/root"
+makeSymlink "/run/root-ssh" "${TARGET_DIR}/root/.ssh"
