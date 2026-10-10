@@ -154,9 +154,9 @@ LAYOUTCOMMIT converts them to written. The Linux client never resends a commit
 a restarted server lost, so data written between a client's last commit and a
 server restart reads back as zeros on every other client. With
 `xfs.pnfs_zeroed_layouts=1` on the kernel command line, which the runner sets
-when started with `-zeroed-layouts`, those blocks are zeroed and written at
-allocation, at the cost of a WRITE ZEROES per allocation. It is off by default
-and can be changed at runtime through
+unless started with `--zeroed-layouts=false`, those blocks are zeroed and
+written at allocation, at the cost of a WRITE ZEROES per allocation. The kernel
+parameter itself defaults to off, and can be changed at runtime through
 `/sys/module/xfs/parameters/pnfs_zeroed_layouts`. The file size still travels
 only in LAYOUTCOMMIT.
 
