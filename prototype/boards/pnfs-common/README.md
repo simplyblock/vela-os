@@ -160,6 +160,18 @@ and can be changed at runtime through
 `/sys/module/xfs/parameters/pnfs_zeroed_layouts`. The file size still travels
 only in LAYOUTCOMMIT.
 
+The sixth,
+`0006-nfsd-keep-a-SCSI-layout-s-device-ID-stable-across-a-filesystem-grow.patch`:
+`xfs_growfs` increments the filesystem's generation, and nfsd puts it into the
+device ID of every layout. A block layout's device address carries the
+device's size, so its clients need the new generation. A SCSI device address is
+the designator and the client's reservation key, and does not change when the
+volume grows. After an expand, every client still looked the device up again,
+in the mount namespace of the application that asked for the layout, where it
+is not visible: the client stopped using layouts and lost the writes in flight
+under the old one. A SCSI layout now carries generation 0, so a grown export
+keeps the device every client already has.
+
 ## Guest layout
 
 | Path                            | Kind                  | Content                                                   |

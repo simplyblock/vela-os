@@ -1,0 +1,55 @@
+From 73ea5e4cc9bc5f390ff65692616350e8158c5421 Mon Sep 17 00:00:00 2001
+From: "Christoph Engelbert (noctarius)" <chris@simplyblock.io>
+Date: Sat, 10 Oct 2026 18:06:20 +0200
+Subject: [PATCH] nfsd: keep a SCSI layout's device ID stable across a
+ filesystem grow
+
+xfs_growfs increments the filesystem's generation, and nfsd puts that
+generation into the device ID of every layout it hands out. A block layout
+client needs it: its device address carries the device's size. A SCSI
+device address does not. It is the device's designator and the client's
+reservation key, and neither changes when the filesystem grows. GETDEVICEINFO
+finds the device by its index alone, and LAYOUTCOMMIT does not compare the
+device ID it is sent.
+
+The new generation still makes every SCSI client treat the grown device as
+a device it has not seen, and look it up again. The Linux client looks a
+SCSI device up in the mount namespace of the task that asked for the
+layout. When that is an application container whose /dev has no
+disk/by-id, the lookup fails ("pNFS: no device found for volume"), the
+client stops using layouts and writes through the metadata server, and the
+writes it had in flight under the old layout reach neither. A pNFS metadata
+server whose export was grown while clients wrote served 1.5 MiB that a
+client had written as allocated, zeroed blocks.
+
+A SCSI layout now carries generation 0. The block layout type keeps the
+filesystem's generation.
+---
+ fs/nfsd/blocklayout.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/fs/nfsd/blocklayout.c b/fs/nfsd/blocklayout.c
+index cea27017d..fc1d83e70 100644
+--- a/fs/nfsd/blocklayout.c
++++ b/fs/nfsd/blocklayout.c
+@@ -98,6 +98,17 @@ nfsd4_block_proc_layoutget(struct svc_rqst *rqstp, struct inode *inode,
+ 		goto out_layoutunavailable;
+ 	}
+ 
++	/*
++	 * The filesystem bumps its generation when it grows, so that block
++	 * layout clients refetch a device whose size changed. A SCSI device
++	 * address is the device's designator and the client's reservation key,
++	 * and neither changes with the size. A new generation only makes every
++	 * SCSI client look the device up again, which fails for a client whose
++	 * lookup runs where the device is not visible.
++	 */
++	if (args->lg_layout_type == LAYOUT_SCSI)
++		device_generation = 0;
++
+ 	error = nfsd4_set_deviceid(&bex->vol_id, fhp, device_generation);
+ 	if (error)
+ 		goto out_error;
+-- 
+2.54.0 (Apple Git-157)
+
