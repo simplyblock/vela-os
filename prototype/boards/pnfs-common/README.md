@@ -147,6 +147,19 @@ nothing until each recall timed out and its client was fenced. nfsd now starts
 the break without waiting and answers NFS4ERR_DELAY while layouts are out, as
 it already does for delegations.
 
+The fifth,
+`0005-xfs-optionally-hand-out-pNFS-write-layouts-over-zeroed-written-blocks.patch`:
+XFS hands out a write layout over unwritten blocks, and only the client's
+LAYOUTCOMMIT converts them to written. The Linux client never resends a commit
+a restarted server lost, so data written between a client's last commit and a
+server restart reads back as zeros on every other client. With
+`xfs.pnfs_zeroed_layouts=1` on the kernel command line, which the runner sets
+when started with `-zeroed-layouts`, those blocks are zeroed and written at
+allocation, at the cost of a WRITE ZEROES per allocation. It is off by default
+and can be changed at runtime through
+`/sys/module/xfs/parameters/pnfs_zeroed_layouts`. The file size still travels
+only in LAYOUTCOMMIT.
+
 ## Guest layout
 
 | Path                            | Kind                  | Content                                                   |
