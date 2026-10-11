@@ -88,7 +88,7 @@ releases.
 | `pnfs-qemu-arm64/linux.config`           | arm64 base config (savedefconfig)                                    |
 | `pnfs-common/linux-pnfs.fragment`        | nfsd, layouts, NVMe-oF/TCP, and the guest contract, on top of either |
 | `pnfs-common/patches/linux/linux.hash`   | the tarball's sha256                                                 |
-| `pnfs-common/patches/linux/000*.patch`   | the four nfsd patches below                                          |
+| `pnfs-common/patches/linux/00*.patch`    | the guest's own patches and the upstream backports below             |
 
 The toolchain's kernel headers stay in the 6.12 series (`BR2_KERNEL_HEADERS_6_12`)
 rather than following the kernel. The kernel does not build against them, only
@@ -105,7 +105,7 @@ every patch in it, and needs none of vela's patches:
   wake, several a second, and the guest console carries each into the MDS pod
   log.
 
-It carries four patches of its own. The first,
+It carries seven patches of its own. The first,
 `0001-nfsd-hold-layouts-until-the-client-has-probed-the-filesystem.patch`: a
 pNFS client opens the device a SCSI layout names in the mount namespace of the
 task that asked for the layout, and an application pod's `/dev` has no
@@ -182,6 +182,16 @@ NFS4ERR_STALE: ESTALE for the application, or EIO on a final write-back. With
 `nfsd.pnfs_export_restore` seconds on the kernel command line, which the runner
 sets, the retry is answered for that long after nfsd starts, whether or not
 grace has ended. It defaults to 0.
+
+The patches named `00NN-backport-<version>-<subject>.patch` are fixes from a
+later mainline kernel that 6.18.y has not taken, `<version>` being the first
+release that carries one. Each keeps its upstream author and trailers, names
+the upstream commit on its first line, and says in a bracketed note where the
+6.18 version differs from it. `0008` stops XFS from handing out a layout built
+from an uninitialized mapping when reading the block map fails. `0009` and
+`0010` keep grace from ending while clients still reclaim and keep the nfsdcld
+reclaim table to one record per client. `0011` to `0017` are NVMe host fixes
+for namespace-head and controller teardown and for parsing the ANA log.
 
 ## Guest layout
 
