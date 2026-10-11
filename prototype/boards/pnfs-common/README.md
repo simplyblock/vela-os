@@ -172,6 +172,17 @@ is not visible: the client stopped using layouts and lost the writes in flight
 under the old one. A SCSI layout now carries generation 0, so a grown export
 keeps the device every client already has.
 
+The seventh,
+`0007-nfsd-answer-an-unknown-export-with-a-retry-for-a-while-after-starting.patch`:
+the third patch answers a request for an export that is not exported yet with
+NFS4ERR_DELAY only during grace, and grace ends as soon as every client has
+reclaimed. After a restart that took 12.5 seconds, while the exports came back
+one at a time, and a request for an export restored after that got
+NFS4ERR_STALE: ESTALE for the application, or EIO on a final write-back. With
+`nfsd.pnfs_export_restore` seconds on the kernel command line, which the runner
+sets, the retry is answered for that long after nfsd starts, whether or not
+grace has ended. It defaults to 0.
+
 ## Guest layout
 
 | Path                            | Kind                  | Content                                                   |
