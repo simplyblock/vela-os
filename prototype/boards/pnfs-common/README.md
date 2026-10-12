@@ -121,7 +121,12 @@ generation, which the client looks up again, so the hold is per generation: a
 probe counts only if its layout carries the filesystem's current generation, and
 a new generation holds the client on that filesystem again until the CSI node
 has probed once more. The client then caches the device with its new size.
-Loopback clients are not held.
+A grow can raise the generation while a layout's blocks are being mapped, so the
+hold is checked again under the generation the layout carries, and a layout the
+client is not primed for is not handed out. Without that second check the
+client is given a device it cannot look up, returns its layouts without
+committing what it wrote under them, and its next write through the metadata
+server zeroes that data. Loopback clients are not held.
 
 The second,
 `0002-nfsd-fence-SCSI-registrations-left-by-an-earlier-server-instance.patch`:
