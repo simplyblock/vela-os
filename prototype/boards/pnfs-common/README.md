@@ -105,7 +105,7 @@ every patch in it, and needs none of vela's patches:
   wake, several a second, and the guest console carries each into the MDS pod
   log.
 
-It carries seven patches of its own. The first,
+It carries seven patches of its own ahead of the backports. The first,
 `0001-nfsd-hold-layouts-until-the-client-has-probed-the-filesystem.patch`: a
 pNFS client opens the device a SCSI layout names in the mount namespace of the
 task that asked for the layout, and an application pod's `/dev` has no
@@ -192,6 +192,31 @@ from an uninitialized mapping when reading the block map fails. `0009` and
 `0010` keep grace from ending while clients still reclaim and keep the nfsdcld
 reclaim table to one record per client. `0011` to `0017` are NVMe host fixes
 for namespace-head and controller teardown and for parsing the ANA log.
+
+Three more patches of its own follow the backports. The eighteenth,
+`0018-nfsd-fence-an-export-s-stale-SCSI-registrations-when-the-export-is-set-up.patch`:
+the second patch fences an earlier boot's client keys only when some client asks
+for the device, so a client cut off from the server across its restart stayed
+registered and kept writing the device with its old layout while the new server
+let another client truncate the file. The device is now claimed and its earlier
+boots' keys fenced when the export is set up, once per boot of nfsd, before the
+export answers any request.
+
+The nineteenth,
+`0019-nfsd-fence-a-client-before-dropping-layouts-it-never-returned.patch`:
+nfsd fenced a client that did not return a recalled layout only from the
+recall's done callback. A recall given up because the client's callback channel
+was down or its lease had expired, and an expiring client, had their layouts
+freed without a fence, and the client could keep writing through them. The
+client is now fenced on the layout's device before either path drops a layout it
+still holds, unless it answered the recall or was fenced already.
+
+The twentieth,
+`0020-xfs-bound-the-allocation-a-zeroed-pNFS-write-layout-zeroes-at-once.patch`:
+with zeroed layouts, LAYOUTGET zeroes its whole allocation in the nfsd thread,
+which held a thread for 15 seconds on a 1 GiB file. `xfs.pnfs_zeroed_layout_max_mb`
+caps the allocation one LAYOUTGET zeroes, 64 MiB by default and 0 for no limit;
+the client asks again for the rest of its range.
 
 ## Guest layout
 
