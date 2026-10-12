@@ -105,7 +105,7 @@ every patch in it, and needs none of vela's patches:
   wake, several a second, and the guest console carries each into the MDS pod
   log.
 
-It carries seven patches of its own ahead of the backports. The first,
+It carries six patches of its own ahead of the backports. The first,
 `0001-nfsd-hold-layouts-until-the-client-has-probed-the-filesystem.patch`: a
 pNFS client opens the device a SCSI layout names in the mount namespace of the
 task that asked for the layout, and an application pod's `/dev` has no
@@ -115,7 +115,12 @@ and if the application asks first, the lookup fails and its I/O goes through
 the metadata server from then on. With both parameters set, nfsd answers a
 client's layout requests with `NFS4ERR_LAYOUTTRYLATER` until the client has
 taken a layout on the probe file of that filesystem, during the grace period
-and for `pnfs_layout_hold` seconds after the client's first request past it.
+and for `pnfs_layout_hold` seconds after the client's first request past it on
+that filesystem. A grown filesystem hands out layouts under a new device ID
+generation, which the client looks up again, so the hold is per generation: a
+probe counts only if its layout carries the filesystem's current generation, and
+a new generation holds the client on that filesystem again until the CSI node
+has probed once more. The client then caches the device with its new size.
 Loopback clients are not held.
 
 The second,
@@ -160,17 +165,12 @@ parameter itself defaults to off, and can be changed at runtime through
 `/sys/module/xfs/parameters/pnfs_zeroed_layouts`. The file size still travels
 only in LAYOUTCOMMIT.
 
-The sixth,
-`0006-nfsd-keep-a-SCSI-layout-s-device-ID-stable-across-a-filesystem-grow.patch`:
-`xfs_growfs` increments the filesystem's generation, and nfsd puts it into the
-device ID of every layout. A block layout's device address carries the
-device's size, so its clients need the new generation. A SCSI device address is
-the designator and the client's reservation key, and does not change when the
-volume grows. After an expand, every client still looked the device up again,
-in the mount namespace of the application that asked for the layout, where it
-is not visible: the client stopped using layouts and lost the writes in flight
-under the old one. A SCSI layout now carries generation 0, so a grown export
-keeps the device every client already has.
+There is no `0006`. It kept a SCSI layout's device ID at generation 0 across a
+grow, so clients never looked the device up again in an application's mount
+namespace, but they also kept the device size from before the grow: every
+extent in the new space fell outside the device they knew, and they wrote
+through the metadata server. The first patch's per-generation hold and the
+twenty-first patch replace it.
 
 The seventh,
 `0007-nfsd-answer-an-unknown-export-with-a-retry-for-a-while-after-starting.patch`:
@@ -193,7 +193,7 @@ from an uninitialized mapping when reading the block map fails. `0009` and
 reclaim table to one record per client. `0011` to `0017` are NVMe host fixes
 for namespace-head and controller teardown and for parsing the ANA log.
 
-Three more patches of its own follow the backports. The eighteenth,
+Four more patches of its own follow the backports. The eighteenth,
 `0018-nfsd-fence-an-export-s-stale-SCSI-registrations-when-the-export-is-set-up.patch`:
 the second patch fences an earlier boot's client keys only when some client asks
 for the device, so a client cut off from the server across its restart stayed
@@ -217,6 +217,14 @@ with zeroed layouts, LAYOUTGET zeroes its whole allocation in the nfsd thread,
 which held a thread for 15 seconds on a 1 GiB file. `xfs.pnfs_zeroed_layout_max_mb`
 caps the allocation one LAYOUTGET zeroes, 64 MiB by default and 0 for no limit;
 the client asks again for the rest of its range.
+
+The twenty-first,
+`0021-xfs-raise-the-layout-generation-before-a-grow-commits-new-space.patch`:
+`xfs_growfs` raised the generation only after the new space was committed, so a
+write layout in between could carry blocks past the old end of the device under
+the old generation, which the client refused. A grow now raises the generation
+before the new space can be allocated; the device already has its new size by
+then, since the grow reads its new last block first.
 
 ## Guest layout
 
