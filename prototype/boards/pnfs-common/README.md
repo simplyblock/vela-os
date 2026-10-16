@@ -231,6 +231,22 @@ the old generation, which the client refused. A grow now raises the generation
 before the new space can be allocated; the device already has its new size by
 then, since the grow reads its new last block first.
 
+The twenty-second,
+`0022-xfs-skip-zeroing-free-space-a-pNFS-write-layout-gets.patch`: with zeroed
+layouts, space a volume freed and reuses is zeroed for real at LAYOUTGET, since
+XFS cannot tell it from space it never used, and one LAYOUTGET on a volume
+rewritten for an hour spent 15 seconds in `blkdev_issue_zeroout`. With
+`xfs.pnfs_discarded_free_space=1` on the kernel command line, a filesystem
+mounted with `-o discard` on a device that announces that discarded blocks read
+as zeros (an NVMe namespace whose DLFEAT says so) discards every extent it
+frees, including the unwritten ones XFS otherwise frees without a discard, and
+zeroes the extents of a discard that fails before releasing them. Once a FITRIM
+of the whole filesystem has completed, a zeroed write layout over a hole is
+allocated written without the WRITE ZEROES, and without the twentieth patch's
+cap. An unwritten extent under a write layout is still zeroed. The parameter
+defaults to off and is read only at mount, and the dmesg line `free space reads
+as zeros` says when a mount has stopped zeroing.
+
 ## Guest layout
 
 | Path                            | Kind                  | Content                                                   |
