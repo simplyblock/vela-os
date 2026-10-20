@@ -198,7 +198,7 @@ from an uninitialized mapping when reading the block map fails. `0009` and
 reclaim table to one record per client. `0011` to `0017` are NVMe host fixes
 for namespace-head and controller teardown and for parsing the ANA log.
 
-Four more patches of its own follow the backports. The eighteenth,
+Six more patches of its own follow the backports. The eighteenth,
 `0018-nfsd-fence-an-export-s-stale-SCSI-registrations-when-the-export-is-set-up.patch`:
 the second patch fences an earlier boot's client keys only when some client asks
 for the device, so a client cut off from the server across its restart stayed
@@ -246,6 +246,18 @@ allocated written without the WRITE ZEROES, and without the twentieth patch's
 cap. An unwritten extent under a write layout is still zeroed. The parameter
 defaults to off and is read only at mount, and the dmesg line `free space reads
 as zeros` says when a mount has stopped zeroing.
+
+The twenty-third,
+`0023-nfsd-let-a-metadata-server-instance-register-under-a-key-of-its-own.patch`:
+every guest registered the same constant reservation key, so two guests of one
+storage cluster could not tell each other's registration from their own.
+`nfsd.pnfs_mds_pr_key` is a `u64` the runner's agent writes before it starts
+nfsd, and it is `0`, the constant key and the behavior above, until then. When
+set, nfsd registers and reserves nothing: it serves a device only while that key
+holds the device's reservation, a device it does not hold is not exported, and
+GETDEVICEINFO for it fails. The stale-key fence leaves every key whose top byte
+is `0x01` alone, so a fenced instance never preempts a newer one. A write while
+nfsd has threads running fails with `EBUSY`.
 
 ## Guest layout
 
