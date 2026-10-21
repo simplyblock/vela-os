@@ -20,7 +20,9 @@ What the runner has to provide when it starts QEMU.
 There is no state disk. The client recovery database lives on a simplyblock
 volume that `mds-agent` connects, fences, and mounts at `/var/lib/nfs` when the
 operator promotes the guest, and the guest boots as a standby: `mds-agent` runs,
-and `nfs-server.service` does not start until the promotion starts it.
+and `nfs-server.service`, `nfs-mountd.service`, and `nfsdcld.service` do not start.
+Each carries a drop-in conditioning it on `/run/mds/active`, which `mds-agent`
+creates when the promotion reaches that step.
 
 ### Kernel command line
 
