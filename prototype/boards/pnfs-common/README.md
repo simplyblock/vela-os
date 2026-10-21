@@ -14,13 +14,13 @@ What the runner has to provide when it starts QEMU.
 | Device                 | QEMU                                                                       | Guest                                               |
 |------------------------|----------------------------------------------------------------------------|-----------------------------------------------------|
 | Root disk (first disk) | `disk.qcow2` from the image as virtio-blk with `readonly=on`              | `/dev/vda`, mounted read-only                       |
-| State disk             | the state PVC (raw block) as virtio-blk with `serial=pnfs-state`           | `/dev/disk/by-id/virtio-pnfs-state` → `/var/lib/nfs` |
 | Network                | one `virtio-net-pci` on the runner's tap                                   | `eth0`                                              |
 | Console                | `virtconsole` on stdio                                                     | `hvc0`                                              |
 
-The state disk is formatted (ext4) on first boot by `x-systemd.makefs` and only
-holds the nfsdcld client recovery database. Without it the guest never reaches
-`local-fs.target` and the runner's boot deadline restarts the pod.
+There is no state disk. The client recovery database lives on a simplyblock
+volume that `mds-agent` connects, fences, and mounts at `/var/lib/nfs` when the
+operator promotes the guest, and the guest boots as a standby: `mds-agent` runs,
+and `nfs-server.service` does not start until the promotion starts it.
 
 ### Kernel command line
 
@@ -33,9 +33,10 @@ arm64 additionally needs `acpi=on`.
 
 - `ip=` is configured by the kernel before init runs. There is no DHCP client
   and no network manager in the guest.
-- `<hostname>` must be stable across restarts (the StatefulSet pod name):
-  nfsd derives its server owner and scope from it, and NFSv4.1 clients only
-  reclaim state after a restart if they did not change.
+- `<hostname>` must be the same on every guest of a storage cluster (the
+  StatefulSet's name) and stable across restarts: nfsd derives its server owner
+  and scope from it, and NFSv4.1 clients only reclaim state from a server whose
+  identity did not change, so a client of one guest reclaims on another.
 - `init=` is not needed, the default `/sbin/init` is systemd.
 - `nfsd.pnfs_probe_name` and `nfsd.pnfs_layout_hold` turn on the layout hold
   of the guest's nfsd patch (see Kernel). The name must be the one the CSI
