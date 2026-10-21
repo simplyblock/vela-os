@@ -1,10 +1,9 @@
 [Unit]
 Description=pNFS MDS guest agent
 Documentation=https://github.com/simplyblock/simplyblock-operator
-# The agent assembles exports (EnsureNFSD, nvme connect, mkfs.xfs, exportfs)
-# and answers the runner's health call, which needs the state disk mounted.
-RequiresMountsFor=/var/lib/nfs
-After=nfs-server.service
+# The agent answers the runner's health call from boot, as a standby. On a
+# promotion it connects and fences the volumes, mounts the state volume, and
+# starts nfsd, so it depends on neither.
 ConditionFileIsExecutable=/usr/bin/mds-agent
 
 [Service]

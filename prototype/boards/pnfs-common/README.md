@@ -14,13 +14,15 @@ What the runner has to provide when it starts QEMU.
 | Device                 | QEMU                                                                       | Guest                                               |
 |------------------------|----------------------------------------------------------------------------|-----------------------------------------------------|
 | Root disk (first disk) | `disk.qcow2` from the image as virtio-blk with `readonly=on`              | `/dev/vda`, mounted read-only                       |
-| State disk             | the state PVC (raw block) as virtio-blk with `serial=pnfs-state`           | `/dev/disk/by-id/virtio-pnfs-state` → `/var/lib/nfs` |
 | Network                | one `virtio-net-pci` on the runner's tap                                   | `eth0`                                              |
 | Console                | `virtconsole` on stdio                                                     | `hvc0`                                              |
 
-The state disk is formatted (ext4) on first boot by `x-systemd.makefs` and only
-holds the nfsdcld client recovery database. Without it the guest never reaches
-`local-fs.target` and the runner's boot deadline restarts the pod.
+There is no state disk. The client recovery database lives on a simplyblock
+volume that `mds-agent` connects, fences, and mounts at `/var/lib/nfs` when the
+operator promotes the guest, and the guest boots as a standby: `mds-agent` runs,
+and `nfs-server.service`, `nfs-mountd.service`, and `nfsdcld.service` do not start.
+Each carries a drop-in conditioning it on `/run/mds/active`, which `mds-agent`
+creates when the promotion reaches that step.
 
 ### Kernel command line
 
@@ -33,9 +35,10 @@ arm64 additionally needs `acpi=on`.
 
 - `ip=` is configured by the kernel before init runs. There is no DHCP client
   and no network manager in the guest.
-- `<hostname>` must be stable across restarts (the StatefulSet pod name):
-  nfsd derives its server owner and scope from it, and NFSv4.1 clients only
-  reclaim state after a restart if they did not change.
+- `<hostname>` must be the same on every guest of a storage cluster (the
+  StatefulSet's name) and stable across restarts: nfsd derives its server owner
+  and scope from it, and NFSv4.1 clients only reclaim state from a server whose
+  identity did not change, so a client of one guest reclaims on another.
 - `init=` is not needed, the default `/sbin/init` is systemd.
 - `nfsd.pnfs_probe_name` and `nfsd.pnfs_layout_hold` turn on the layout hold
   of the guest's nfsd patch (see Kernel). The name must be the one the CSI
@@ -198,7 +201,7 @@ from an uninitialized mapping when reading the block map fails. `0009` and
 reclaim table to one record per client. `0011` to `0017` are NVMe host fixes
 for namespace-head and controller teardown and for parsing the ANA log.
 
-Four more patches of its own follow the backports. The eighteenth,
+Six more patches of its own follow the backports. The eighteenth,
 `0018-nfsd-fence-an-export-s-stale-SCSI-registrations-when-the-export-is-set-up.patch`:
 the second patch fences an earlier boot's client keys only when some client asks
 for the device, so a client cut off from the server across its restart stayed
@@ -230,6 +233,34 @@ write layout in between could carry blocks past the old end of the device under
 the old generation, which the client refused. A grow now raises the generation
 before the new space can be allocated; the device already has its new size by
 then, since the grow reads its new last block first.
+
+The twenty-second,
+`0022-xfs-skip-zeroing-free-space-a-pNFS-write-layout-gets.patch`: with zeroed
+layouts, space a volume freed and reuses is zeroed for real at LAYOUTGET, since
+XFS cannot tell it from space it never used, and one LAYOUTGET on a volume
+rewritten for an hour spent 15 seconds in `blkdev_issue_zeroout`. With
+`xfs.pnfs_discarded_free_space=1` on the kernel command line, a filesystem
+mounted with `-o discard` on a device that announces that discarded blocks read
+as zeros (an NVMe namespace whose DLFEAT says so) discards every extent it
+frees, including the unwritten ones XFS otherwise frees without a discard, and
+zeroes the extents of a discard that fails before releasing them. Once a FITRIM
+of the whole filesystem has completed, a zeroed write layout over a hole is
+allocated written without the WRITE ZEROES, and without the twentieth patch's
+cap. An unwritten extent under a write layout is still zeroed. The parameter
+defaults to off and is read only at mount, and the dmesg line `free space reads
+as zeros` says when a mount has stopped zeroing.
+
+The twenty-third,
+`0023-nfsd-let-a-metadata-server-instance-register-under-a-key-of-its-own.patch`:
+every guest registered the same constant reservation key, so two guests of one
+storage cluster could not tell each other's registration from their own.
+`nfsd.pnfs_mds_pr_key` is a `u64` the runner's agent writes before it starts
+nfsd, and it is `0`, the constant key and the behavior above, until then. When
+set, nfsd registers and reserves nothing: it serves a device only while that key
+holds the device's reservation, a device it does not hold is not exported, and
+GETDEVICEINFO for it fails. The stale-key fence leaves every key whose top byte
+is `0x01` alone, so a fenced instance never preempts a newer one. A write while
+nfsd has threads running fails with `EBUSY`.
 
 ## Guest layout
 
