@@ -231,6 +231,28 @@ the old generation, which the client refused. A grow now raises the generation
 before the new space can be allocated; the device already has its new size by
 then, since the grow reads its new last block first.
 
+The twenty-second,
+`0022-nfsd-never-wait-for-a-layout-break-with-an-nfsd-thread-held-in-copy.patch`:
+a server-side `COPY` into a file that still carries another client's write
+layout breaks that layout the same way a write does, and the fourth patch's
+fix did not reach it: `nfsd_copy_file_range` has the identical hazard as
+`nfsd_setattr`, `nfsd4_vfs_fallocate`, and `nfsd_vfs_write`, but was not one of
+the three call sites that patch touched. A synchronous `COPY` merely
+reproduces the bug the fourth patch fixed, bounded by nfsd's own layout-recall
+timeout. An asynchronous one does not: it runs in its own kthread rather than
+an nfsd thread, so nothing times it out, and the kthread never reaches the
+point where it would send `CB_OFFLOAD`, so the client's wait for one never
+ends. Seen as an S3 `CompleteMultipartUpload` that never returned: the
+gateway's join of two uploaded parts is a `copy_file_range` against the
+destination object's file, which still carried the write layout the
+gateway's own preceding writes had taken out on it. `nfsd_copy_file_range`
+now starts the break without waiting, the same as the fourth patch's other
+three sites, and returns the error to the caller instead of blocking;
+`nfsd4_do_copy` already turns a negative return into an NFS4 error for both
+the synchronous and the asynchronous caller, so the synchronous RPC answers
+with it directly and the asynchronous kthread carries it into
+`nfsd4_send_cb_offload`.
+
 ## Guest layout
 
 | Path                            | Kind                  | Content                                                   |
