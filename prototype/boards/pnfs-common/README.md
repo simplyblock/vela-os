@@ -253,6 +253,32 @@ the synchronous and the asynchronous caller, so the synchronous RPC answers
 with it directly and the asynchronous kthread carries it into
 `nfsd4_send_cb_offload`.
 
+The twenty-third,
+`0023-nfsd-send-CB_OFFLOAD-with-the-async-copy-s-own-callback-stateid.patch`:
+an asynchronous `COPY` answers the client with a callback stateid and reports
+completion later in `CB_OFFLOAD`, which the client matches against that stateid
+by `memcmp`. nfsd sent zeros instead, so the match never succeeded and the
+client's waiter was never completed. `nfsd4_copy` duplicates the copy fields
+before `nfs4_init_copy_state` creates the stateid, so the durable `async_copy`
+carries a `cp_res` whose `cb_stateid` is still zero; the memcpy that follows
+writes the real one only into the reply's copy. `nfsd4_send_cb_offload` takes
+`co_res` from the `async_copy`, and `encode_cb_offload4args` puts
+`co_res.cb_stateid` on the wire. The ordering itself is deliberate — upstream
+`d0beaee498e1` moved the dup ahead of the stateid so the `s2s_cp_stateids` IDR
+is not registered into per-request memory the next request reuses — so this
+fills in `async_copy->cp_res.cb_stateid` once the stateid exists rather than
+moving the dup back. Found as the twenty-second patch's `CompleteMultipartUpload`
+still never returning: the copy succeeds and `CB_OFFLOAD` is delivered and
+acknowledged, but one trace of it shows the reply carrying
+`cb_stateid=1:0xd062d9e9` and the callback carrying `cb_stateid=0:0x7bd5c66f`
+for the same file handle. Mainline never needs it: the async COPY rework,
+`f307b4f7ed17`, allocates the stateid up front and warns in a comment that
+duplicating first would leave the callback stateid zeroed. That rework was
+judged too risky to backport, so 6.18.y took the same targeted two-line fix in
+**6.18.58**, as `22732b0f290a`. **Drop this patch when the kernel moves to
+6.18.58 or later** — it is byte-identical to what stable already carries from
+that release on, and will fail to apply.
+
 ## Guest layout
 
 | Path                            | Kind                  | Content                                                   |
