@@ -29,20 +29,21 @@ for unit in rpcbind.service rpcbind.socket nfs-blkmap.service rpc-statd.service 
             rpc-statd-notify.service; do
   makeSymlink "/dev/null" "${TARGET_DIR}/etc/systemd/system/${unit}"
 done
-makeSymlink "../nfs-server.service" "${UNITDIR}/multi-user.target.wants/nfs-server.service"
+# nfsd is not started at boot: a guest boots as a standby, and mds-agent starts
+# nfs-server.service and nfsdcld.service when the operator promotes it, after it
+# has fenced every device and mounted the state volume.
+rm -f "${UNITDIR}/multi-user.target.wants/nfs-server.service"
 makeSymlink "../mds-agent.service" "${UNITDIR}/multi-user.target.wants/mds-agent.service"
 
 # The root filesystem is read-only, the assembler writes its exports here.
 makeSymlink "/run/exports.d" "${TARGET_DIR}/etc/exports.d"
 
-# The state disk (QEMU serial "pnfs-state") holds the nfsdcld client recovery
-# database. systemd formats it on first boot and mounts it before nfsd starts.
-# A missing state disk fails local-fs.target, the guest never turns healthy and
-# the runner's boot deadline restarts the pod.
-echo "Configuring state disk..."
+# The client recovery database lives on a simplyblock volume that mds-agent
+# connects and mounts at /var/lib/nfs when the guest is promoted. Nothing in the
+# image mounts it, and an earlier image's fstab entry for a state disk is removed
+# so a guest without one still reaches local-fs.target.
+echo "Configuring state directory..."
 sed -i '\#[[:space:]]/var/lib/nfs[[:space:]]#d' "${TARGET_DIR}/etc/fstab"
-echo "/dev/disk/by-id/virtio-pnfs-state /var/lib/nfs ext4 defaults,noatime,x-systemd.makefs,x-systemd.device-timeout=30s 0 2" \
-  >> "${TARGET_DIR}/etc/fstab"
 
 # The address comes from the kernel command line (ip=...:eth0:off) and is
 # configured before udev runs, keep kernel interface names so it stays on eth0.
