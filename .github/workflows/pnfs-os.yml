@@ -108,9 +108,19 @@ jobs:
           set -euo pipefail
           sha="$(git rev-parse --short=7 HEAD)"
           dockerfile=prototype/boards/pnfs-common/scripts/Dockerfile.publish
+          # Only the branches the MDS image is released from move the shared
+          # pnfsos tags. Any other branch pushes the commit-pinned tags alone.
+          case "${GITHUB_REF_NAME}" in
+            main|pnfs-minimal) moving=true ;;
+            *) moving=false ;;
+          esac
           for arch in amd64 arm64; do
+            tags=(-t "${IMAGE}:pnfsos-${sha}-${arch}")
+            if [ "${moving}" = true ]; then tags+=(-t "${IMAGE}:pnfsos-${arch}"); fi
             docker buildx build --platform "linux/${arch}" -f "${dockerfile}" --push \
-              -t "${IMAGE}:pnfsos-${arch}" -t "${IMAGE}:pnfsos-${sha}-${arch}" guest
+              "${tags[@]}" guest
           done
+          tags=(-t "${IMAGE}:pnfsos-${sha}")
+          if [ "${moving}" = true ]; then tags+=(-t "${IMAGE}:pnfsos"); fi
           docker buildx build --platform linux/amd64,linux/arm64 -f "${dockerfile}" --push \
-            -t "${IMAGE}:pnfsos" -t "${IMAGE}:pnfsos-${sha}" guest
+            "${tags[@]}" guest
