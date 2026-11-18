@@ -1,0 +1,197 @@
+From 1652693270e0cafcdf9e2abe032da3903e2f99a0 Mon Sep 17 00:00:00 2001
+From: "Christoph Engelbert (noctarius)" <chris@simplyblock.io>
+Date: Wed, 18 Nov 2026 13:28:19 +0100
+Subject: [PATCH] nfsd: hold a client's layouts again when its probe misses the
+ device
+
+The layout hold primes a client on a filesystem when its probe is
+granted a layout, and nothing unprimed it afterwards. A grant says
+nothing about whether the client reached the device. A client fenced
+from the device, or one whose device lookup already failed, stays primed
+while every later lookup it makes runs in an application's mount
+namespace, which has no /dev/disk/by-id.
+
+In SFAM-2850 a metadata server failover fenced the client's key. Its
+direct writes got reservation conflicts at 20:14:55 and the client
+marked the device unavailable. The node agent's probe was granted a
+layout after grace, which primed the client, but the probe's write went
+through the server because the device was still unavailable. At
+20:16:56, when the two minutes ran out, an application task looked the
+device up, failed, and marked it unavailable again. That repeated every
+two minutes until the end of the run, and none of the agent's 482 probes in
+that time made the lookup.
+
+Unprime the client on the filesystem and restart its hold in two cases:
+
+ - The client writes the probe through the server outside the grace
+   period. Its probe layout did not reach the device, and the node agent
+   probes again. While it keeps missing, the hold keeps restarting, so
+   the first lookup after the device's two minutes runs in the agent's
+   probe.
+ - nfsd fences the client on the filesystem's device, from the recall's
+   done callback or before dropping layouts it never returned. The
+   client re-registers its key on its next lookup, in whichever task
+   asks.
+
+A client with no node agent never writes the probe and waits once per
+fence. Unpriming takes no allocation, so the fence paths stay as they
+were.
+
+LAYOUTGET checks the hold again after mapping the blocks for every
+request except the probe, not only when a grow raised the generation:
+an unprime leaves the generation as it was, and a request that passed
+the first check would otherwise hand out a layout the restarted hold
+should have refused.
+---
+ fs/nfsd/nfs4layouts.c | 57 +++++++++++++++++++++++++++++++++++++++++--
+ fs/nfsd/nfs4proc.c    | 15 +++++++-----
+ fs/nfsd/pnfs.h        |  5 ++++
+ 3 files changed, 69 insertions(+), 8 deletions(-)
+
+diff --git a/fs/nfsd/nfs4layouts.c b/fs/nfsd/nfs4layouts.c
+index 2fe7911c3e..205f59fa08 100644
+--- a/fs/nfsd/nfs4layouts.c
++++ b/fs/nfsd/nfs4layouts.c
+@@ -74,6 +74,8 @@ struct nfsd4_primed_fs {
+ 	time64_t		hold_until;	/* end of the hold, 0: not begun */
+ };
+ 
++static void nfsd4_layout_unprime(struct nfs4_client *clp, dev_t dev);
++
+ static struct kmem_cache *nfs4_layout_cache;
+ static struct kmem_cache *nfs4_layout_stateid_cache;
+ 
+@@ -762,6 +764,8 @@ nfsd4_fence_unreturned_layouts(struct nfs4_layout_stateid *ls)
+ 	}
+ 	trace_nfsd_layout_recall_fail(&ls->ls_stid.sc_stateid);
+ 	ops->fence_client(ls, fl);
++	nfsd4_layout_unprime(ls->ls_stid.sc_client,
++			     file_inode(fl->nf_file)->i_sb->s_dev);
+ 	nfsd_file_put(fl);
+ }
+ 
+@@ -852,10 +856,13 @@ nfsd4_cb_layout_done(struct nfsd4_callback *cb, struct rpc_task *task)
+ 		rcu_read_unlock();
+ 		if (fl) {
+ 			ops = nfsd4_layout_ops[ls->ls_layout_type];
+-			if (ops->fence_client)
++			if (ops->fence_client) {
+ 				ops->fence_client(ls, fl);
+-			else
++				nfsd4_layout_unprime(ls->ls_stid.sc_client,
++					file_inode(fl->nf_file)->i_sb->s_dev);
++			} else {
+ 				nfsd4_cb_layout_fail(ls, fl);
++			}
+ 			nfsd_file_put(fl);
+ 		}
+ 		return 1;
+@@ -1113,3 +1120,49 @@ void nfsd4_layout_primed(struct nfs4_client *clp, struct svc_fh *fhp, u32 gen)
+ 	}
+ 	spin_unlock(&clp->cl_lock);
+ }
++
++/*
++ * The client is no longer primed on the filesystem on device dev, and its hold
++ * there starts again with its next layout request.
++ *
++ * A client that has to look the device up again does so in whichever task
++ * asks for a layout next, as after a server restart: one fenced from the
++ * device re-registers its key in that lookup, and one whose lookup failed
++ * marks the device unavailable for two minutes and looks it up again after
++ * that. The probe granted before then primed it, but nothing in the client
++ * reached the device, and once the two minutes are up the application asks
++ * first, fails, and sends all of its I/O through the server again, every two
++ * minutes, for as long as it runs.
++ *
++ * Takes no allocation: a client with no entry for the filesystem was never
++ * primed there, and its first request starts a hold anyway.
++ */
++static void nfsd4_layout_unprime(struct nfs4_client *clp, dev_t dev)
++{
++	struct nfsd4_primed_fs *p;
++
++	spin_lock(&clp->cl_lock);
++	p = nfsd4_primed_fs_locked(clp, dev);
++	if (p) {
++		p->primed = false;
++		p->hold_until = 0;
++	}
++	spin_unlock(&clp->cl_lock);
++}
++
++/*
++ * The client wrote the probe through the server, so the probe layout it was
++ * granted did not reach the device, and the node agent will probe again. Hold
++ * the client until a probe does. Writes during the grace period, when no probe
++ * can be granted, do not count: the hold past it starts as before.
++ */
++void nfsd4_layout_probe_written(struct nfs4_client *clp, struct svc_fh *fhp)
++{
++	if (!clp || !READ_ONCE(pnfs_layout_hold) || !pnfs_probe_name[0])
++		return;
++	if (nfsd4_client_is_loopback(clp) || locks_in_grace(clp->net))
++		return;
++	if (!nfsd4_is_layout_probe(fhp->fh_dentry))
++		return;
++	nfsd4_layout_unprime(clp, d_inode(fhp->fh_dentry)->i_sb->s_dev);
++}
+diff --git a/fs/nfsd/nfs4proc.c b/fs/nfsd/nfs4proc.c
+index 8355a37066..37498f9584 100644
+--- a/fs/nfsd/nfs4proc.c
++++ b/fs/nfsd/nfs4proc.c
+@@ -1298,6 +1298,7 @@ nfsd4_write(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
+ 		nfsd4_file_mark_deleg_written(stid->sc_file);
+ 		nfs4_put_stid(stid);
+ 	}
++	nfsd4_layout_probe_written(cstate->clp, &cstate->current_fh);
+ 
+ 	write->wr_how_written = write->wr_stable_how;
+ 	status = nfsd_vfs_write(rqstp, &cstate->current_fh, nf,
+@@ -2628,13 +2629,15 @@ nfsd4_layoutget(struct svc_rqst *rqstp,
+ 		goto out_put_stid;
+ 
+ 	/*
+-	 * A grow can raise the generation while the blocks are mapped, after
+-	 * the hold was checked under the old one. The client has to be primed
+-	 * under the generation the layout carries, or it looks the new device
+-	 * up in whichever task asked, so check the hold again under that one.
+-	 * The layout is not handed out: op_release frees it.
++	 * The hold can change while the blocks are mapped, after it was
++	 * checked. A grow raises the generation, and the client has to be
++	 * primed under the one the layout carries, or it looks the new device
++	 * up in whichever task asked. A fence or a probe written through the
++	 * server unprimes the client under the same generation. Either way,
++	 * check the hold again under the layout's generation. The layout is
++	 * not handed out: op_release frees it.
+ 	 */
+-	if (!probe && lgp->lg_generation != gen) {
++	if (!probe) {
+ 		nfserr = nfsd4_layout_held(cstate->clp, current_fh,
+ 					   lgp->lg_generation, &probe);
+ 		if (nfserr)
+diff --git a/fs/nfsd/pnfs.h b/fs/nfsd/pnfs.h
+index b0aa4f5380..5a710c2aed 100644
+--- a/fs/nfsd/pnfs.h
++++ b/fs/nfsd/pnfs.h
+@@ -85,6 +85,7 @@ u32 nfsd4_layout_generation(const struct svc_fh *fhp);
+ __be32 nfsd4_layout_held(struct nfs4_client *clp, struct svc_fh *fhp,
+ 		u32 gen, bool *probe);
+ void nfsd4_layout_primed(struct nfs4_client *clp, struct svc_fh *fhp, u32 gen);
++void nfsd4_layout_probe_written(struct nfs4_client *clp, struct svc_fh *fhp);
+ #else
+ struct nfs4_client;
+ struct nfs4_file;
+@@ -121,5 +122,9 @@ static inline void nfsd4_init_layout_hold(struct nfs4_client *clp)
+ static inline void nfsd4_free_layout_hold(struct nfs4_client *clp)
+ {
+ }
++static inline void nfsd4_layout_probe_written(struct nfs4_client *clp,
++		struct svc_fh *fhp)
++{
++}
+ #endif /* CONFIG_NFSD_PNFS */
+ #endif /* _FS_NFSD_PNFS_H */
+-- 
+2.54.0 (Apple Git-157)
+
