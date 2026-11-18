@@ -1,4 +1,4 @@
-From c5b22c4c38acfdc399b7459711ad3962a0d252ba Mon Sep 17 00:00:00 2001
+From b012ea6adb3e29c1358e5885aa5f20093dea1e92 Mon Sep 17 00:00:00 2001
 From: "Christoph Engelbert (noctarius)" <chris@simplyblock.io>
 Date: Wed, 18 Nov 2026 13:50:20 +0100
 Subject: [PATCH] nfsd: count the data each client sends through a pNFS server
@@ -84,7 +84,7 @@ index 205f59fa08..852a8f0bc3 100644
 +				    &clp->cl_mds_read_bytes);
 +}
 diff --git a/fs/nfsd/nfs4proc.c b/fs/nfsd/nfs4proc.c
-index 38ad105755..8e8f50d737 100644
+index 37498f9584..878350cd79 100644
 --- a/fs/nfsd/nfs4proc.c
 +++ b/fs/nfsd/nfs4proc.c
 @@ -995,6 +995,9 @@ nfsd4_read(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
