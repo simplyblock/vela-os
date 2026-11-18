@@ -201,7 +201,7 @@ from an uninitialized mapping when reading the block map fails. `0009` and
 reclaim table to one record per client. `0011` to `0017` are NVMe host fixes
 for namespace-head and controller teardown and for parsing the ANA log.
 
-Eight more patches of its own follow the backports. The eighteenth,
+Nine more patches of its own follow the backports. The eighteenth,
 `0018-nfsd-fence-an-export-s-stale-SCSI-registrations-when-the-export-is-set-up.patch`:
 the second patch fences an earlier boot's client keys only when some client asks
 for the device, so a client cut off from the server across its restart stayed
@@ -309,6 +309,19 @@ holds the device's reservation, a device it does not hold is not exported, and
 GETDEVICEINFO for it fails. The stale-key fence leaves every key whose top byte
 is `0x01` alone, so a fenced instance never preempts a newer one. A write while
 nfsd has threads running fails with `EBUSY`.
+
+The twenty-sixth,
+`0026-nfsd-hold-a-client-s-layouts-again-when-its-probe-misses-the-device.patch`:
+the first patch primed a client when its probe was granted a layout, and the
+client stayed primed even when it never reached the device. A client fenced by
+a new server instance marked its device unavailable for two minutes, its probe
+went through the server, and when the two minutes ran out an application task
+looked the device up, failed, and repeated that every two minutes (SFAM-2850).
+A client that writes the probe through the server outside the grace period, or
+that nfsd fences on a filesystem's device, is no longer primed there, and its
+hold starts again with its next layout request. While the node agent's probes
+keep missing, the hold keeps restarting, so the agent's probe makes the first
+lookup once the device is available again.
 
 ## Guest layout
 
