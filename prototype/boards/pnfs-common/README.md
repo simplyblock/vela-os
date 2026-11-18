@@ -201,7 +201,7 @@ from an uninitialized mapping when reading the block map fails. `0009` and
 reclaim table to one record per client. `0011` to `0017` are NVMe host fixes
 for namespace-head and controller teardown and for parsing the ANA log.
 
-Nine more patches of its own follow the backports. The eighteenth,
+Ten more patches of its own follow the backports. The eighteenth,
 `0018-nfsd-fence-an-export-s-stale-SCSI-registrations-when-the-export-is-set-up.patch`:
 the second patch fences an earlier boot's client keys only when some client asks
 for the device, so a client cut off from the server across its restart stayed
@@ -322,6 +322,18 @@ that nfsd fences on a filesystem's device, is no longer primed there, and its
 hold starts again with its next layout request. While the node agent's probes
 keep missing, the hold keeps restarting, so the agent's probe makes the first
 lookup once the device is available again.
+
+The twenty-seventh,
+`0027-nfsd-count-the-data-each-client-sends-through-a-pNFS-server.patch`: a
+client that cannot use its layout's device sends all of its data through the
+server, and nothing fails or says which client it is. nfsd now counts, per
+client, the bytes of the READs and WRITEs it carries on an export that hands out
+layouts, outside the grace period and the client's layout hold, and for a client
+that is not loopback. `/proc/fs/nfsd/clients/<id>/info` shows them as
+`pnfs mds read bytes` and `pnfs mds write bytes`. READs count the bytes asked
+for. Some data goes through the server by design, such as unaligned direct I/O,
+so a growing count says where to look. The guest agent logs every client whose
+count grows by 1 MiB or more in a minute.
 
 ## Guest layout
 

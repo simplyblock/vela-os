@@ -1,0 +1,164 @@
+From c5b22c4c38acfdc399b7459711ad3962a0d252ba Mon Sep 17 00:00:00 2001
+From: "Christoph Engelbert (noctarius)" <chris@simplyblock.io>
+Date: Wed, 18 Nov 2026 13:50:20 +0100
+Subject: [PATCH] nfsd: count the data each client sends through a pNFS server
+
+A pNFS client that cannot use the device its layout names sends all of
+its READs and WRITEs through the metadata server instead, and nothing
+fails. In SFAM-2850 one client did that for the rest of a run, 6.8 GB in
+11 minutes, and nothing on the server said which client it was.
+
+Count, per client, the bytes of the READs and WRITEs it sends through
+the server on an export that hands out layouts, and show both in
+/proc/fs/nfsd/clients/<id>/info as "pnfs mds read bytes" and "pnfs mds
+write bytes". Data the server is expected to carry is not counted:
+during the grace period and while the client is held on the filesystem
+no layout is handed out, and a loopback client is never offered one.
+Some data still goes through the server by design, such as unaligned
+direct I/O, so a growing count says where to look. READs count the bytes
+asked for. READ_PLUS is served by the same operation and counts as a
+READ.
+---
+ fs/nfsd/nfs4layouts.c | 49 +++++++++++++++++++++++++++++++++++++++++++
+ fs/nfsd/nfs4proc.c    |  5 +++++
+ fs/nfsd/nfs4state.c   |  6 ++++++
+ fs/nfsd/pnfs.h        |  6 ++++++
+ fs/nfsd/state.h       |  2 ++
+ 5 files changed, 68 insertions(+)
+
+diff --git a/fs/nfsd/nfs4layouts.c b/fs/nfsd/nfs4layouts.c
+index 205f59fa08..852a8f0bc3 100644
+--- a/fs/nfsd/nfs4layouts.c
++++ b/fs/nfsd/nfs4layouts.c
+@@ -1166,3 +1166,52 @@ void nfsd4_layout_probe_written(struct nfs4_client *clp, struct svc_fh *fhp)
+ 		return;
+ 	nfsd4_layout_unprime(clp, d_inode(fhp->fh_dentry)->i_sb->s_dev);
+ }
++
++/*
++ * Whether the client is held on this filesystem now, so that its data goes
++ * through the server by design. Starts no hold.
++ */
++static bool nfsd4_layout_hold_active(struct nfs4_client *clp,
++		struct svc_fh *fhp)
++{
++	dev_t dev = d_inode(fhp->fh_dentry)->i_sb->s_dev;
++	u32 gen = nfsd4_layout_generation(fhp);
++	struct nfsd4_primed_fs *p;
++	bool held;
++
++	if (!READ_ONCE(pnfs_layout_hold) || !pnfs_probe_name[0])
++		return false;
++	spin_lock(&clp->cl_lock);
++	p = nfsd4_primed_fs_locked(clp, dev);
++	held = p && !(p->primed && p->primed_gen == gen) && p->hold_until &&
++	       ktime_get_boottime_seconds() < p->hold_until;
++	spin_unlock(&clp->cl_lock);
++	return held;
++}
++
++/*
++ * Count a READ or WRITE a client sent through the server on an export that
++ * hands out layouts, in /proc/fs/nfsd/clients/<id>/info.
++ *
++ * A pNFS client that cannot use its layout's device falls back to the server
++ * for all of its data, and nothing fails: the server's load grows and the
++ * client's I/O slows, and that is all. The counters are how the server shows
++ * which client does it. Data the server is expected to carry is not counted:
++ * during the grace period and while the client is held on the filesystem, no
++ * layout is handed out, and a loopback client is never offered one. Some data
++ * still goes through the server by design, unaligned direct I/O among it, so a
++ * count that grows says where to look rather than that something is broken.
++ * READs count the bytes asked for.
++ */
++void nfsd4_count_mds_data(struct nfs4_client *clp, struct svc_fh *fhp,
++		u64 bytes, bool write)
++{
++	if (!clp || !fhp->fh_export || !fhp->fh_export->ex_layout_types)
++		return;
++	if (nfsd4_client_is_loopback(clp) || locks_in_grace(clp->net))
++		return;
++	if (nfsd4_layout_hold_active(clp, fhp))
++		return;
++	atomic64_add(bytes, write ? &clp->cl_mds_write_bytes :
++				    &clp->cl_mds_read_bytes);
++}
+diff --git a/fs/nfsd/nfs4proc.c b/fs/nfsd/nfs4proc.c
+index 38ad105755..8e8f50d737 100644
+--- a/fs/nfsd/nfs4proc.c
++++ b/fs/nfsd/nfs4proc.c
+@@ -995,6 +995,9 @@ nfsd4_read(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
+ 	status = nfs4_preprocess_stateid_op(rqstp, cstate, &cstate->current_fh,
+ 					&read->rd_stateid, RD_STATE,
+ 					&read->rd_nf, NULL);
++	if (!status)
++		nfsd4_count_mds_data(cstate->clp, &cstate->current_fh,
++				     read->rd_length, false);
+ 
+ 	read->rd_rqstp = rqstp;
+ 	read->rd_fhp = &cstate->current_fh;
+@@ -1306,6 +1309,8 @@ nfsd4_write(struct svc_rqst *rqstp, struct nfsd4_compound_state *cstate,
+ 				&cnt, write->wr_how_written,
+ 				(__be32 *)write->wr_verifier.data);
+ 	nfsd_file_put(nf);
++	if (!status)
++		nfsd4_count_mds_data(cstate->clp, &cstate->current_fh, cnt, true);
+ 
+ 	write->wr_bytes_written = cnt;
+ 	trace_nfsd_write_done(rqstp, &cstate->current_fh,
+diff --git a/fs/nfsd/nfs4state.c b/fs/nfsd/nfs4state.c
+index 463c529852..b955e79e84 100644
+--- a/fs/nfsd/nfs4state.c
++++ b/fs/nfsd/nfs4state.c
+@@ -2962,6 +2962,12 @@ static int client_info_show(struct seq_file *m, void *v)
+ 	seq_printf(m, "callback address: \"%pISpc\"\n", &clp->cl_cb_conn.cb_addr);
+ 	seq_printf(m, "admin-revoked states: %d\n",
+ 		   atomic_read(&clp->cl_admin_revoked));
++#ifdef CONFIG_NFSD_PNFS
++	seq_printf(m, "pnfs mds read bytes: %lld\n",
++		   atomic64_read(&clp->cl_mds_read_bytes));
++	seq_printf(m, "pnfs mds write bytes: %lld\n",
++		   atomic64_read(&clp->cl_mds_write_bytes));
++#endif
+ 	spin_lock(&clp->cl_lock);
+ 	seq_printf(m, "session slots:");
+ 	list_for_each_entry(ses, &clp->cl_sessions, se_perclnt)
+diff --git a/fs/nfsd/pnfs.h b/fs/nfsd/pnfs.h
+index 5a710c2aed..9b507ac66a 100644
+--- a/fs/nfsd/pnfs.h
++++ b/fs/nfsd/pnfs.h
+@@ -86,6 +86,8 @@ __be32 nfsd4_layout_held(struct nfs4_client *clp, struct svc_fh *fhp,
+ 		u32 gen, bool *probe);
+ void nfsd4_layout_primed(struct nfs4_client *clp, struct svc_fh *fhp, u32 gen);
+ void nfsd4_layout_probe_written(struct nfs4_client *clp, struct svc_fh *fhp);
++void nfsd4_count_mds_data(struct nfs4_client *clp, struct svc_fh *fhp,
++		u64 bytes, bool write);
+ #else
+ struct nfs4_client;
+ struct nfs4_file;
+@@ -126,5 +128,9 @@ static inline void nfsd4_layout_probe_written(struct nfs4_client *clp,
+ 		struct svc_fh *fhp)
+ {
+ }
++static inline void nfsd4_count_mds_data(struct nfs4_client *clp,
++		struct svc_fh *fhp, u64 bytes, bool write)
++{
++}
+ #endif /* CONFIG_NFSD_PNFS */
+ #endif /* _FS_NFSD_PNFS_H */
+diff --git a/fs/nfsd/state.h b/fs/nfsd/state.h
+index 166d50d30a..9560506b3d 100644
+--- a/fs/nfsd/state.h
++++ b/fs/nfsd/state.h
+@@ -458,6 +458,8 @@ struct nfs4_client {
+ #ifdef CONFIG_NFSD_PNFS
+ 	struct list_head	cl_lo_states;	/* outstanding layout states */
+ 	struct list_head	cl_lo_primed;	/* layout holds per filesystem, see nfsd4_layout_held */
++	atomic64_t		cl_mds_read_bytes;	/* see nfsd4_count_mds_data */
++	atomic64_t		cl_mds_write_bytes;
+ #endif
+ 	struct xdr_netobj	cl_name; 	/* id generated by client */
+ 	nfs4_verifier		cl_verifier; 	/* generated by client */
+-- 
+2.54.0 (Apple Git-157)
+
